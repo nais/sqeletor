@@ -2,14 +2,15 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: sqeletor
+  name: {{ include "sqeletor.fullname" . }}
+  labels:
+    {{- include "sqeletor.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - sql.cnrm.cloud.google.com
   resources:
   - sqlsslcerts
   verbs:
-  - delete
   - get
   - list
   - watch

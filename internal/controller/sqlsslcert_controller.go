@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -14,6 +15,7 @@ import (
 type SQLSSLCertReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	log    zap.Logger
 }
 
 //+kubebuilder:rbac:groups=sql.cnrm.cloud.google.com,resources=sqlsslcerts,verbs=get;list;watch;delete
@@ -31,7 +33,7 @@ type SQLSSLCertReconciler struct {
 func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	r.log.Info("Reconciling SQLSSLCert", zap.Any("request", req))
 
 	return ctrl.Result{}, nil
 }
@@ -39,7 +41,6 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // SetupWithManager sets up the controller with the Manager.
 func (r *SQLSSLCertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		// Uncomment the following line adding a pointer to an instance of the controlled resource as an argument
 		For(&v1beta1.SQLSSLCert{}).
 		Complete(r)
 }

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: sqeletor
+description: Manages client certs and networkpolicy for SQLInstances
+type: application
+version: 0.1.0
+appVersion: "1.16.0"
+sources:
+  - https://github.com/nais/sqeletor/tree/main/charts

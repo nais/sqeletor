@@ -11,10 +11,6 @@ help: ## Display this help.
 
 ##@ Development
 
-.PHONY: manifests
-manifests: ## Generate ClusterRole objects.
-	$(CONTROLLER_GEN) rbac:roleName=sqeletor paths="./..." output:rbac:dir=config
-
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
@@ -24,7 +20,7 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests fmt vet  ## Run tests.
+test: fmt vet  ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
 .PHONY: lint
@@ -38,13 +34,12 @@ lint-fix: ## Run golangci-lint linter and perform fixes
 ##@ Build
 
 .PHONY: build
-build: manifests fmt vet ## Build sqeletor binary.
+build: fmt vet ## Build sqeletor binary.
 	go build -o bin/sqeletor cmd/main.go
 
 .PHONY: run
-run: manifests fmt vet ## Run a controller from your host.
+run: fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go
 
-CONTROLLER_GEN ?= go run sigs.k8s.io/controller-tools/cmd/controller-gen
 ENVTEST ?= go run sigs.k8s.io/controller-runtime/tools/setup-envtest
 GOLANGCI_LINT = go run github.com/golangci/golangci-lint/cmd/golangci-lint
