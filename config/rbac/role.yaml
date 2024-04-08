@@ -9,24 +9,12 @@ rules:
   resources:
   - sqlsslcerts
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
-- apiGroups:
-  - sql.cnrm.cloud.google.com
-  resources:
-  - sqlsslcerts/finalizers
-  verbs:
-  - update
 - apiGroups:
   - sql.cnrm.cloud.google.com
   resources:
   - sqlsslcerts/status
   verbs:
   - get
-  - patch
-  - update

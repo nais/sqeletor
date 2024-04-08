@@ -32,9 +32,8 @@ type SQLSSLCertReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=sql.cnrm.cloud.google.com,resources=sqlsslcerts,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=sql.cnrm.cloud.google.com,resources=sqlsslcerts/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=sql.cnrm.cloud.google.com,resources=sqlsslcerts/finalizers,verbs=update
+//+kubebuilder:rbac:groups=sql.cnrm.cloud.google.com,resources=sqlsslcerts,verbs=get;list;watch
+//+kubebuilder:rbac:groups=sql.cnrm.cloud.google.com,resources=sqlsslcerts/status,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
