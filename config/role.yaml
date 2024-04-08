@@ -2,13 +2,14 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: manager-role
+  name: sqeletor
 rules:
 - apiGroups:
   - sql.cnrm.cloud.google.com
   resources:
   - sqlsslcerts
   verbs:
+  - delete
   - get
   - list
   - watch
