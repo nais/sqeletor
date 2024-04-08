@@ -7,8 +7,8 @@ toolchain go1.22.2
 require (
 	github.com/GoogleCloudPlatform/k8s-config-connector v1.115.0
 	github.com/golangci/golangci-lint v1.54.2
-	github.com/onsi/ginkgo/v2 v2.14.0
-	github.com/onsi/gomega v1.30.0
+	github.com/onsi/ginkgo/v2 v2.15.0
+	github.com/onsi/gomega v1.32.0
 	go.uber.org/zap v1.26.0
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v0.29.3
