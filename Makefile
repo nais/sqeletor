@@ -38,8 +38,8 @@ lint-fix: ## Run golangci-lint linter and perform fixes
 ##@ Build
 
 .PHONY: build
-build: manifests fmt vet ## Build manager binary.
-	go build -o bin/manager cmd/main.go
+build: manifests fmt vet ## Build sqeletor binary.
+	go build -o bin/sqeletor cmd/main.go
 
 .PHONY: run
 run: manifests fmt vet ## Run a controller from your host.
