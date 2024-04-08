@@ -44,8 +44,8 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: manifests
-manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=sqeletor crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases output:rbac:dir=config
+manifests: ## Generate ClusterRole objects.
+	$(CONTROLLER_GEN) rbac:roleName=sqeletor paths="./..." output:rbac:dir=config
 
 
 .PHONY: generate
