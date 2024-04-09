@@ -51,16 +51,18 @@ type SQLSSLCertReconciler struct {
 func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	r.Logger.Info("Reconciling SQLSSLCert", "request", req)
+	logger := r.Logger.WithValues("request", req)
+
+	logger.Info("Reconciling SQLSSLCert")
 
 	sqlSslCert := &v1beta1.SQLSSLCert{}
 	err := r.Client.Get(ctx, req.NamespacedName, sqlSslCert)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			r.Logger.Info("SQLSSLCert not found", "sqlsslcert", req.NamespacedName)
+			logger.Info("SQLSSLCert not found", "sqlsslcert", req.NamespacedName)
 			return ctrl.Result{}, nil
 		}
-		r.Logger.Error(err, "Failed to get SQLSSLCert")
+		logger.Error(err, "Failed to get SQLSSLCert")
 		return requeue(), err
 	}
 
@@ -72,9 +74,10 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	var ok bool
 	if secretName, ok = sqlSslCert.GetAnnotations()["sqeletor.nais.io/secret-name"]; !ok {
 		err = fmt.Errorf("secret name not found")
-		r.Logger.Error(nil, "Secret name not found")
+		logger.Error(nil, "Secret name not found")
 		return ctrl.Result{}, err
 	}
+	logger = logger.WithValues("secret", secretName)
 
 	secret := &v1.Secret{}
 	namespacedName := client.ObjectKey{
@@ -84,11 +87,12 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	err = r.Client.Get(ctx, namespacedName, secret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			r.Logger.Info("Secret not found", "secret", secretName)
+			logger.Info("Secret not found, creating")
 			return r.createSecret(ctx, namespacedName, sqlSslCert)
 		}
 		return requeue(), err
 	}
+	logger.Info("Secret found, updating")
 	return r.updateSecret(ctx, secret, sqlSslCert)
 }
 
