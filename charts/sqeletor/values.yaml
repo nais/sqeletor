@@ -5,16 +5,24 @@ image:
   pullPolicy: IfNotPresent
   tag: ""
 
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext:
+  fsGroup: 65532
+  runAsNonRoot: true
+  supplementalGroups:
+    - 65532
+  seccompProfile:
+    type: RuntimeDefault
 
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 65532
+  seccompProfile:
+    type: RuntimeDefault
+  allowPrivilegeEscalation: false
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
