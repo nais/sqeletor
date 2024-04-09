@@ -30,7 +30,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 Selector labels
 */}}
 {{- define "sqeletor.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "sqeletor.name" . }}
+app.kubernetes.io/name: {{ .Chart.Name }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
