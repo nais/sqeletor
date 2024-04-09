@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
-	"go.uber.org/zap"
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,7 +15,7 @@ import (
 type SQLSSLCertReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	log    zap.Logger
+	Logger logr.Logger
 }
 
 //+kubebuilder:rbac:groups=sql.cnrm.cloud.google.com,resources=sqlsslcerts,verbs=get;list;watch;delete
@@ -33,7 +33,7 @@ type SQLSSLCertReconciler struct {
 func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	r.log.Info("Reconciling SQLSSLCert", zap.Any("request", req))
+	r.Logger.Info("Reconciling SQLSSLCert", "request", req)
 
 	return ctrl.Result{}, nil
 }
