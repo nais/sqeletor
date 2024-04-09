@@ -2,7 +2,10 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
+	v1 "k8s.io/api/core/v1"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"time"
 
@@ -56,13 +59,62 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, nil
 		}
 		r.Logger.Error(err, "Failed to get SQLSSLCert")
-		requeues.Inc()
-		return ctrl.Result{
-			RequeueAfter: time.Minute,
-		}, nil
+		return requeue(), err
 	}
 	r.Logger.Info("Got SQLSSLCert", "sqlsslcert", sqlSslCert.Status.Cert)
 
+	var secretName string
+	var ok bool
+	if secretName, ok = sqlSslCert.GetAnnotations()["sqeletor.nais.io/secret-name"]; !ok {
+		err = fmt.Errorf("secret name not found")
+		r.Logger.Error(nil, "Secret name not found")
+		return ctrl.Result{}, err
+	}
+	secret := &v1.Secret{}
+	namespacedName := client.ObjectKey{
+		Namespace: req.Namespace,
+		Name:      secretName,
+	}
+	err = r.Client.Get(ctx, namespacedName, secret)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			r.Logger.Info("Secret not found", "secret", secretName)
+			return r.createSecret(ctx, namespacedName, sqlSslCert)
+		}
+		return requeue(), err
+	}
+	return r.updateSecret(secret, sqlSslCert)
+}
+
+func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName client.ObjectKey, sqlSslCert *v1beta1.SQLSSLCert) (ctrl.Result, error) {
+	if sqlSslCert.Status.Cert == nil || sqlSslCert.Status.PrivateKey == nil || sqlSslCert.Status.ServerCaCert == nil {
+		return requeue(), fmt.Errorf("missing certificate data")
+	}
+
+	secret := &v1.Secret{
+		ObjectMeta: v12.ObjectMeta{
+			Name:        namespacedName.Name,
+			Namespace:   namespacedName.Namespace,
+			Annotations: map[string]string{},
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "sqeletor",
+				"type":                         "sqeletor.nais.io",
+			},
+		},
+		StringData: map[string]string{
+			"cert.pem":           *sqlSslCert.Status.Cert,
+			"private-key.pem":    *sqlSslCert.Status.PrivateKey,
+			"server-ca-cert.pem": *sqlSslCert.Status.ServerCaCert,
+		},
+	}
+	err := r.Create(ctx, secret)
+	if err != nil {
+		return requeue(), err
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *SQLSSLCertReconciler) updateSecret(secret *v1.Secret, status *v1beta1.SQLSSLCert) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
@@ -71,4 +123,11 @@ func (r *SQLSSLCertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.SQLSSLCert{}).
 		Complete(r)
+}
+
+func requeue() ctrl.Result {
+	requeues.Inc()
+	return ctrl.Result{
+		RequeueAfter: time.Minute,
+	}
 }
