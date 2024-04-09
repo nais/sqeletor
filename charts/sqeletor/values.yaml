@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: sqeletor
+  repository: europe-north1-docker.pkg.dev/nais-io/nais/images/sqeletor
   pullPolicy: IfNotPresent
   tag: ""
 
