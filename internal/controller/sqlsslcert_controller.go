@@ -2,14 +2,27 @@ package controller
 
 import (
 	"context"
+	"github.com/prometheus/client_golang/prometheus"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	"time"
 
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
 	"github.com/go-logr/logr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var requeues = prometheus.NewCounter(prometheus.CounterOpts{
+	Name: "sqlsslcert_requeues",
+	Help: "Number of requeues for SQLSSLCert",
+})
+
+func init() {
+	metrics.Registry.MustRegister(requeues)
+}
 
 // SQLSSLCertReconciler reconciles a SQLSSLCert object
 type SQLSSLCertReconciler struct {
@@ -34,6 +47,21 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	_ = log.FromContext(ctx)
 
 	r.Logger.Info("Reconciling SQLSSLCert", "request", req)
+
+	sqlSslCert := &v1beta1.SQLSSLCert{}
+	err := r.Client.Get(ctx, req.NamespacedName, sqlSslCert)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			r.Logger.Info("SQLSSLCert not found", "sqlsslcert", req.NamespacedName)
+			return ctrl.Result{}, nil
+		}
+		r.Logger.Error(err, "Failed to get SQLSSLCert")
+		requeues.Inc()
+		return ctrl.Result{
+			RequeueAfter: time.Minute,
+		}, nil
+	}
+	r.Logger.Info("Got SQLSSLCert", "sqlsslcert", sqlSslCert.Status.Cert)
 
 	return ctrl.Result{}, nil
 }
