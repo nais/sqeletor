@@ -87,18 +87,23 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName client.ObjectKey, sqlSslCert *v1beta1.SQLSSLCert) (ctrl.Result, error) {
+
 	if sqlSslCert.Status.Cert == nil || sqlSslCert.Status.PrivateKey == nil || sqlSslCert.Status.ServerCaCert == nil {
 		return requeue(), fmt.Errorf("missing certificate data")
 	}
 
 	secret := &v1.Secret{
 		ObjectMeta: v12.ObjectMeta{
-			Name:        namespacedName.Name,
-			Namespace:   namespacedName.Namespace,
-			Annotations: map[string]string{},
+			Name:      namespacedName.Name,
+			Namespace: namespacedName.Namespace,
+			Annotations: map[string]string{
+				"nais.io/deploymentCorrelationID": sqlSslCert.GetAnnotations()["nais.io/deploymentCorrelationID"],
+			},
 			Labels: map[string]string{
 				"app.kubernetes.io/managed-by": "sqeletor",
 				"type":                         "sqeletor.nais.io",
+				"app":                          sqlSslCert.GetLabels()["app"],
+				"team":                         sqlSslCert.GetLabels()["team"],
 			},
 		},
 		StringData: map[string]string{
