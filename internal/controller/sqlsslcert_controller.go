@@ -141,6 +141,7 @@ func (r *SQLSSLCertReconciler) updateSecret(ctx context.Context, secret *core_v1
 	labels[teamKey] = sqlSslCert.GetLabels()[teamKey]
 
 	// Update data
+	secret.StringData = make(map[string]string)
 	secret.StringData[certKey] = *sqlSslCert.Status.Cert
 	secret.StringData[privateKeyKey] = *sqlSslCert.Status.PrivateKey
 	secret.StringData[serverCaCertKey] = *sqlSslCert.Status.ServerCaCert
