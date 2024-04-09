@@ -4,12 +4,16 @@ go 1.22
 
 toolchain go1.22.2
 
+replace github.com/hashicorp/terraform-provider-google-beta => ./third_party/github.com/hashicorp/terraform-provider-google-beta
+
+replace github.com/GoogleCloudPlatform/k8s-config-connector/mockgcp => ./mockgcp
+
 require (
 	github.com/GoogleCloudPlatform/k8s-config-connector v1.115.0
+	github.com/go-logr/logr v1.4.1
 	github.com/golangci/golangci-lint v1.57.2
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.32.0
-	go.uber.org/zap v1.27.0
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v0.29.3
 	sigs.k8s.io/controller-runtime v0.17.3
@@ -63,7 +67,6 @@ require (
 	github.com/fzipp/gocyclo v0.6.0 // indirect
 	github.com/ghostiam/protogetter v0.3.5 // indirect
 	github.com/go-critic/go-critic v0.11.2 // indirect
-	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
@@ -199,6 +202,7 @@ require (
 	go-simpler.org/sloglint v0.5.0 // indirect
 	go.uber.org/automaxprocs v1.5.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
 	golang.org/x/exp/typeparams v0.0.0-20240314144324-c7f7c6466f7f // indirect
 	golang.org/x/mod v0.16.0 // indirect
