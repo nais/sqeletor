@@ -18,6 +18,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const (
+	deploymentCorrelationIdKey = "nais.io/deploymentCorrelationID"
+	managedByKey               = "app.kubernetes.io/managed-by"
+	typeKey                    = "type"
+	appKey                     = "app"
+	teamKey                    = "team"
+
+	certKey         = "cert.pem"
+	privateKeyKey   = "private-key.pem"
+	serverCaCertKey = "server-ca-cert.pem"
+
+	sqeletorFqdnId = "sqeletor.nais.io"
+)
+
 var requeues = prometheus.NewCounter(prometheus.CounterOpts{
 	Name: "sqlsslcert_requeues",
 	Help: "Number of requeues for SQLSSLCert",
@@ -34,18 +48,6 @@ type SQLSSLCertReconciler struct {
 	Logger logr.Logger
 }
 
-//+kubebuilder:rbac:groups=sql.cnrm.cloud.google.com,resources=sqlsslcerts,verbs=get;list;watch;delete
-//+kubebuilder:rbac:groups=sql.cnrm.cloud.google.com,resources=sqlsslcerts/status,verbs=get
-
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the SQLSSLCert object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.2/pkg/reconcile
 func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
@@ -61,7 +63,10 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.Logger.Error(err, "Failed to get SQLSSLCert")
 		return requeue(), err
 	}
-	r.Logger.Info("Got SQLSSLCert", "sqlsslcert", sqlSslCert.Status.Cert)
+
+	if sqlSslCert.Status.Cert == nil || sqlSslCert.Status.PrivateKey == nil || sqlSslCert.Status.ServerCaCert == nil {
+		return requeue(), fmt.Errorf("missing certificate data")
+	}
 
 	var secretName string
 	var ok bool
@@ -70,6 +75,7 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.Logger.Error(nil, "Secret name not found")
 		return ctrl.Result{}, err
 	}
+
 	secret := &v1.Secret{}
 	namespacedName := client.ObjectKey{
 		Namespace: req.Namespace,
@@ -83,33 +89,28 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 		return requeue(), err
 	}
-	return r.updateSecret(secret, sqlSslCert)
+	return r.updateSecret(ctx, secret, sqlSslCert)
 }
 
 func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName client.ObjectKey, sqlSslCert *v1beta1.SQLSSLCert) (ctrl.Result, error) {
-
-	if sqlSslCert.Status.Cert == nil || sqlSslCert.Status.PrivateKey == nil || sqlSslCert.Status.ServerCaCert == nil {
-		return requeue(), fmt.Errorf("missing certificate data")
-	}
-
 	secret := &v1.Secret{
 		ObjectMeta: v12.ObjectMeta{
 			Name:      namespacedName.Name,
 			Namespace: namespacedName.Namespace,
 			Annotations: map[string]string{
-				"nais.io/deploymentCorrelationID": sqlSslCert.GetAnnotations()["nais.io/deploymentCorrelationID"],
+				deploymentCorrelationIdKey: sqlSslCert.GetAnnotations()[deploymentCorrelationIdKey],
 			},
 			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "sqeletor",
-				"type":                         "sqeletor.nais.io",
-				"app":                          sqlSslCert.GetLabels()["app"],
-				"team":                         sqlSslCert.GetLabels()["team"],
+				managedByKey: sqeletorFqdnId,
+				typeKey:      sqeletorFqdnId,
+				appKey:       sqlSslCert.GetLabels()[appKey],
+				teamKey:      sqlSslCert.GetLabels()[teamKey],
 			},
 		},
 		StringData: map[string]string{
-			"cert.pem":           *sqlSslCert.Status.Cert,
-			"private-key.pem":    *sqlSslCert.Status.PrivateKey,
-			"server-ca-cert.pem": *sqlSslCert.Status.ServerCaCert,
+			certKey:         *sqlSslCert.Status.Cert,
+			privateKeyKey:   *sqlSslCert.Status.PrivateKey,
+			serverCaCertKey: *sqlSslCert.Status.ServerCaCert,
 		},
 	}
 	err := r.Create(ctx, secret)
@@ -119,7 +120,27 @@ func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName 
 	return ctrl.Result{}, nil
 }
 
-func (r *SQLSSLCertReconciler) updateSecret(secret *v1.Secret, status *v1beta1.SQLSSLCert) (ctrl.Result, error) {
+func (r *SQLSSLCertReconciler) updateSecret(ctx context.Context, secret *v1.Secret, sqlSslCert *v1beta1.SQLSSLCert) (ctrl.Result, error) {
+	// Update annotations
+	annotations := secret.GetAnnotations()
+	annotations[deploymentCorrelationIdKey] = sqlSslCert.GetAnnotations()[deploymentCorrelationIdKey]
+
+	// Update labels
+	labels := secret.GetLabels()
+	labels[managedByKey] = sqeletorFqdnId
+	labels[typeKey] = sqeletorFqdnId
+	labels[appKey] = sqlSslCert.GetLabels()[appKey]
+	labels[teamKey] = sqlSslCert.GetLabels()[teamKey]
+
+	// Update data
+	secret.StringData[certKey] = *sqlSslCert.Status.Cert
+	secret.StringData[privateKeyKey] = *sqlSslCert.Status.PrivateKey
+	secret.StringData[serverCaCertKey] = *sqlSslCert.Status.ServerCaCert
+
+	err := r.Update(ctx, secret)
+	if err != nil {
+		return requeue(), err
+	}
 	return ctrl.Result{}, nil
 }
 
