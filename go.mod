@@ -4,9 +4,12 @@ go 1.22
 
 toolchain go1.22.2
 
-replace github.com/hashicorp/terraform-provider-google-beta => ./third_party/github.com/hashicorp/terraform-provider-google-beta
+// These have invalid versions, but aren't actually in use.
+// They are pulled in by github.com/GoogleCloudPlatform/k8s-config-connector
+// Replacing them with non-existing directories to avoid go mod errors.
+replace github.com/hashicorp/terraform-provider-google-beta => ./invalid/terraform-provider-google-beta
 
-replace github.com/GoogleCloudPlatform/k8s-config-connector/mockgcp => ./mockgcp
+replace github.com/GoogleCloudPlatform/k8s-config-connector/mockgcp => ./invalid/mockgcp
 
 require (
 	github.com/GoogleCloudPlatform/k8s-config-connector v1.115.0
