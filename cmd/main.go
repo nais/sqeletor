@@ -95,7 +95,6 @@ func main() {
 	if err = (&controller.SQLSSLCertReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		Logger: ctrl.Log.WithName("controllers").WithName("SQLSSLCert"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SQLSSLCert")
 		os.Exit(1)

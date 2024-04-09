@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	v1 "k8s.io/api/core/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	core_v1 "k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"time"
 
@@ -45,13 +46,10 @@ func init() {
 type SQLSSLCertReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	Logger logr.Logger
 }
 
 func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
-	logger := r.Logger.WithValues("request", req)
+	logger := log.FromContext(ctx)
 
 	logger.Info("Reconciling SQLSSLCert")
 
@@ -79,7 +77,7 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	logger = logger.WithValues("secret", secretName)
 
-	secret := &v1.Secret{}
+	secret := &core_v1.Secret{}
 	namespacedName := client.ObjectKey{
 		Namespace: req.Namespace,
 		Name:      secretName,
@@ -88,7 +86,7 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.Info("Secret not found, creating")
-			return r.createSecret(ctx, namespacedName, sqlSslCert)
+			return r.createSecret(ctx, namespacedName, sqlSslCert, logger)
 		}
 		return requeue(), err
 	}
@@ -96,9 +94,9 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return r.updateSecret(ctx, secret, sqlSslCert)
 }
 
-func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName client.ObjectKey, sqlSslCert *v1beta1.SQLSSLCert) (ctrl.Result, error) {
-	secret := &v1.Secret{
-		ObjectMeta: v12.ObjectMeta{
+func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName client.ObjectKey, sqlSslCert *v1beta1.SQLSSLCert, logger logr.Logger) (ctrl.Result, error) {
+	secret := &core_v1.Secret{
+		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      namespacedName.Name,
 			Namespace: namespacedName.Namespace,
 			Annotations: map[string]string{
@@ -117,14 +115,20 @@ func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName 
 			serverCaCertKey: *sqlSslCert.Status.ServerCaCert,
 		},
 	}
-	err := r.Create(ctx, secret)
+	err := controllerutil.SetOwnerReference(sqlSslCert, secret, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Failed to set owner reference")
+		return ctrl.Result{}, err
+	}
+
+	err = r.Create(ctx, secret)
 	if err != nil {
 		return requeue(), err
 	}
 	return ctrl.Result{}, nil
 }
 
-func (r *SQLSSLCertReconciler) updateSecret(ctx context.Context, secret *v1.Secret, sqlSslCert *v1beta1.SQLSSLCert) (ctrl.Result, error) {
+func (r *SQLSSLCertReconciler) updateSecret(ctx context.Context, secret *core_v1.Secret, sqlSslCert *v1beta1.SQLSSLCert) (ctrl.Result, error) {
 	// Update annotations
 	annotations := secret.GetAnnotations()
 	annotations[deploymentCorrelationIdKey] = sqlSslCert.GetAnnotations()[deploymentCorrelationIdKey]
