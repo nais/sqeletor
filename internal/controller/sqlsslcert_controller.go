@@ -95,7 +95,7 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 	if secretName, ok = sqlSslCert.Annotations["sqeletor.nais.io/secret-name"]; !ok {
 		return fmt.Errorf("secret name not found")
 	}
-	logger = logger.WithValues("secret", "secretName", secretName)
+	logger = logger.WithValues("secret", secretName)
 
 	secret := &core_v1.Secret{ObjectMeta: meta_v1.ObjectMeta{Namespace: req.Namespace, Name: secretName}}
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
