@@ -13,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
-	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -41,7 +40,8 @@ var (
 		Help: "Number of requeues for SQLSSLCert",
 	})
 
-	temporaryFailure = errors.New("temporary failure")
+	errTemporaryFailure = errors.New("temporary failure")
+	errNotOwner         = errors.New("not owner")
 )
 
 func init() {
@@ -59,7 +59,7 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	logger.Info("Reconciling SQLSSLCert")
 
 	err := r.reconcileSQLSSLCert(ctx, req)
-	if errors.Is(err, temporaryFailure) {
+	if errors.Is(err, errTemporaryFailure) {
 		requeuesMetric.Inc()
 		logger.Error(err, "requeueing after temporary failure")
 		return ctrl.Result{
@@ -98,79 +98,46 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 	}
 	logger = logger.WithValues("secret", secretName)
 
-	namespacedName := client.ObjectKey{
-		Namespace: req.Namespace,
-		Name:      secretName,
-	}
-	secret := &core_v1.Secret{}
-	if err := r.Client.Get(ctx, namespacedName, secret); err != nil {
-		if apierrors.IsNotFound(err) {
-			logger.Info("Secret not found, creating")
-			return r.createSecret(ctx, namespacedName, sqlSslCert, logger)
+	secret := &core_v1.Secret{ObjectMeta: meta_v1.ObjectMeta{Namespace: req.Namespace, Name: secretName}}
+
+	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+		// if new resource, add ourselves as owner
+		if secret.CreationTimestamp.IsZero() {
+			secret.OwnerReferences = []meta_v1.OwnerReference{}
 		}
-		return temporaryFailureError(err)
-	}
 
-	logger.Info("Secret found, updating")
-	return r.updateSecret(ctx, secret, sqlSslCert)
-}
+		// if we don't own this resource, error out
+		for _, ref := range secret.OwnerReferences {
+			if ref.Name != sqeletorFqdnId {
+				return fmt.Errorf("secret %s in namesapce %s is not owned by %s: %w", secret.Name, secret.Namespace, sqeletorFqdnId, errNotOwner)
+			}
+		}
 
-func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName client.ObjectKey, sqlSslCert *v1beta1.SQLSSLCert, logger logr.Logger) error {
-	secret := &core_v1.Secret{
-		ObjectMeta: meta_v1.ObjectMeta{
-			Name:      namespacedName.Name,
-			Namespace: namespacedName.Namespace,
-			Annotations: map[string]string{
-				deploymentCorrelationIdKey: sqlSslCert.GetAnnotations()[deploymentCorrelationIdKey],
-			},
-			Labels: map[string]string{
-				managedByKey: sqeletorFqdnId,
-				typeKey:      sqeletorFqdnId,
-				appKey:       sqlSslCert.GetLabels()[appKey],
-				teamKey:      sqlSslCert.GetLabels()[teamKey],
-			},
-		},
-		StringData: map[string]string{
+		annotations := secret.GetAnnotations()
+		annotations[deploymentCorrelationIdKey] = sqlSslCert.GetAnnotations()[deploymentCorrelationIdKey]
+
+		labels := secret.GetLabels()
+		labels[managedByKey] = sqeletorFqdnId
+		labels[typeKey] = sqeletorFqdnId
+		labels[appKey] = sqlSslCert.GetLabels()[appKey]
+		labels[teamKey] = sqlSslCert.GetLabels()[teamKey]
+
+		secret.StringData = map[string]string{
 			certKey:         *sqlSslCert.Status.Cert,
 			privateKeyKey:   *sqlSslCert.Status.PrivateKey,
 			serverCaCertKey: *sqlSslCert.Status.ServerCaCert,
-		},
-	}
+		}
 
-	if err := controllerutil.SetOwnerReference(sqlSslCert, secret, r.Scheme); err != nil {
-		logger.Error(err, "Failed to set owner reference")
+		return nil
+	})
+	if err != nil {
+		if !errors.Is(err, errNotOwner) {
+			return temporaryFailureError(err)
+		}
 		return err
 	}
 
-	if err := r.Create(ctx, secret); err != nil {
-		return temporaryFailureError(err)
-	}
-
-	return nil
-}
-
-func (r *SQLSSLCertReconciler) updateSecret(ctx context.Context, secret *core_v1.Secret, sqlSslCert *v1beta1.SQLSSLCert) error {
-	// Update annotations
-	annotations := secret.GetAnnotations()
-	annotations[deploymentCorrelationIdKey] = sqlSslCert.GetAnnotations()[deploymentCorrelationIdKey]
-
-	// Update labels
-	labels := secret.GetLabels()
-	labels[managedByKey] = sqeletorFqdnId
-	labels[typeKey] = sqeletorFqdnId
-	labels[appKey] = sqlSslCert.GetLabels()[appKey]
-	labels[teamKey] = sqlSslCert.GetLabels()[teamKey]
-
-	// Update data
-	secret.StringData = make(map[string]string)
-	secret.StringData[certKey] = *sqlSslCert.Status.Cert
-	secret.StringData[privateKeyKey] = *sqlSslCert.Status.PrivateKey
-	secret.StringData[serverCaCertKey] = *sqlSslCert.Status.ServerCaCert
-
-	if err := r.Update(ctx, secret); err != nil {
-		return temporaryFailureError(err)
-	}
-
+	logger.Info("Secret reconciled", "operation", op)
 	return nil
 }
 
@@ -181,5 +148,5 @@ func (r *SQLSSLCertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func temporaryFailureError(err error) error {
-	return fmt.Errorf("%w: %w", temporaryFailure, err)
+	return fmt.Errorf("%w: %w", errTemporaryFailure, err)
 }
