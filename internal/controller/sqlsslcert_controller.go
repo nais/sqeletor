@@ -99,6 +99,13 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 
 	secret := &core_v1.Secret{ObjectMeta: meta_v1.ObjectMeta{Namespace: req.Namespace, Name: secretName}}
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+		if secret.Labels == nil {
+			secret.Labels = make(map[string]string)
+		}
+		if secret.Annotations == nil {
+			secret.Annotations = make(map[string]string)
+		}
+
 		// if new resource, add owner reference and managed-by label
 		if secret.CreationTimestamp.IsZero() {
 			secret.OwnerReferences = []meta_v1.OwnerReference{{
