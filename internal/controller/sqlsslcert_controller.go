@@ -2,13 +2,15 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
-	"time"
 
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
 	"github.com/go-logr/logr"
@@ -33,13 +35,17 @@ const (
 	sqeletorFqdnId = "sqeletor.nais.io"
 )
 
-var requeues = prometheus.NewCounter(prometheus.CounterOpts{
-	Name: "sqlsslcert_requeues",
-	Help: "Number of requeues for SQLSSLCert",
-})
+var (
+	requeuesMetric = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "sqlsslcert_requeues",
+		Help: "Number of requeues for SQLSSLCert",
+	})
+
+	temporaryFailure = errors.New("temporary failure")
+)
 
 func init() {
-	metrics.Registry.MustRegister(requeues)
+	metrics.Registry.MustRegister(requeuesMetric)
 }
 
 // SQLSSLCertReconciler reconciles a SQLSSLCert object
@@ -50,51 +56,66 @@ type SQLSSLCertReconciler struct {
 
 func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-
 	logger.Info("Reconciling SQLSSLCert")
 
+	err := r.reconcileSQLSSLCert(ctx, req)
+	if errors.Is(err, temporaryFailure) {
+		requeuesMetric.Inc()
+		logger.Error(err, "requeueing after temporary failure")
+		return ctrl.Result{
+			RequeueAfter: time.Minute,
+		}, nil
+	}
+	return ctrl.Result{}, err
+}
+
+func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl.Request) error {
+	logger := log.FromContext(ctx)
+
 	sqlSslCert := &v1beta1.SQLSSLCert{}
-	err := r.Client.Get(ctx, req.NamespacedName, sqlSslCert)
-	if err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, sqlSslCert); err != nil {
 		if apierrors.IsNotFound(err) {
-			logger.Info("SQLSSLCert not found", "sqlsslcert", req.NamespacedName)
-			return ctrl.Result{}, nil
+			logger.Info("SQLSSLCert not found, aborting reconcile", "sqlsslcert", req.NamespacedName)
+			return nil
 		}
 		logger.Error(err, "Failed to get SQLSSLCert")
-		return requeue(), err
+		return temporaryFailureError(err)
 	}
 
 	if sqlSslCert.Status.Cert == nil || sqlSslCert.Status.PrivateKey == nil || sqlSslCert.Status.ServerCaCert == nil {
-		return requeue(), fmt.Errorf("missing certificate data")
+		err := fmt.Errorf("cert not ready: status.cert: %t, status.privateKey: %t, status.serverCaCert: %t",
+			sqlSslCert.Status.Cert != nil,
+			sqlSslCert.Status.PrivateKey != nil,
+			sqlSslCert.Status.ServerCaCert != nil,
+		)
+		return temporaryFailureError(err)
 	}
 
 	var secretName string
 	var ok bool
 	if secretName, ok = sqlSslCert.GetAnnotations()["sqeletor.nais.io/secret-name"]; !ok {
-		err = fmt.Errorf("secret name not found")
-		logger.Error(nil, "Secret name not found")
-		return ctrl.Result{}, err
+		return fmt.Errorf("secret name not found")
 	}
 	logger = logger.WithValues("secret", secretName)
 
-	secret := &core_v1.Secret{}
 	namespacedName := client.ObjectKey{
 		Namespace: req.Namespace,
 		Name:      secretName,
 	}
-	err = r.Client.Get(ctx, namespacedName, secret)
-	if err != nil {
+	secret := &core_v1.Secret{}
+	if err := r.Client.Get(ctx, namespacedName, secret); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.Info("Secret not found, creating")
 			return r.createSecret(ctx, namespacedName, sqlSslCert, logger)
 		}
-		return requeue(), err
+		return temporaryFailureError(err)
 	}
+
 	logger.Info("Secret found, updating")
 	return r.updateSecret(ctx, secret, sqlSslCert)
 }
 
-func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName client.ObjectKey, sqlSslCert *v1beta1.SQLSSLCert, logger logr.Logger) (ctrl.Result, error) {
+func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName client.ObjectKey, sqlSslCert *v1beta1.SQLSSLCert, logger logr.Logger) error {
 	secret := &core_v1.Secret{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      namespacedName.Name,
@@ -115,20 +136,20 @@ func (r *SQLSSLCertReconciler) createSecret(ctx context.Context, namespacedName 
 			serverCaCertKey: *sqlSslCert.Status.ServerCaCert,
 		},
 	}
-	err := controllerutil.SetOwnerReference(sqlSslCert, secret, r.Scheme)
-	if err != nil {
+
+	if err := controllerutil.SetOwnerReference(sqlSslCert, secret, r.Scheme); err != nil {
 		logger.Error(err, "Failed to set owner reference")
-		return ctrl.Result{}, err
+		return err
 	}
 
-	err = r.Create(ctx, secret)
-	if err != nil {
-		return requeue(), err
+	if err := r.Create(ctx, secret); err != nil {
+		return temporaryFailureError(err)
 	}
-	return ctrl.Result{}, nil
+
+	return nil
 }
 
-func (r *SQLSSLCertReconciler) updateSecret(ctx context.Context, secret *core_v1.Secret, sqlSslCert *v1beta1.SQLSSLCert) (ctrl.Result, error) {
+func (r *SQLSSLCertReconciler) updateSecret(ctx context.Context, secret *core_v1.Secret, sqlSslCert *v1beta1.SQLSSLCert) error {
 	// Update annotations
 	annotations := secret.GetAnnotations()
 	annotations[deploymentCorrelationIdKey] = sqlSslCert.GetAnnotations()[deploymentCorrelationIdKey]
@@ -146,23 +167,19 @@ func (r *SQLSSLCertReconciler) updateSecret(ctx context.Context, secret *core_v1
 	secret.StringData[privateKeyKey] = *sqlSslCert.Status.PrivateKey
 	secret.StringData[serverCaCertKey] = *sqlSslCert.Status.ServerCaCert
 
-	err := r.Update(ctx, secret)
-	if err != nil {
-		return requeue(), err
+	if err := r.Update(ctx, secret); err != nil {
+		return temporaryFailureError(err)
 	}
-	return ctrl.Result{}, nil
+
+	return nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
 func (r *SQLSSLCertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.SQLSSLCert{}).
 		Complete(r)
 }
 
-func requeue() ctrl.Result {
-	requeues.Inc()
-	return ctrl.Result{
-		RequeueAfter: time.Minute,
-	}
+func temporaryFailureError(err error) error {
+	return fmt.Errorf("%w: %w", temporaryFailure, err)
 }
