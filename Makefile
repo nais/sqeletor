@@ -1,5 +1,3 @@
-ENVTEST_K8S_VERSION = 1.29.0
-
 .PHONY: all
 all: build
 
@@ -21,15 +19,15 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: fmt vet  ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
+	go test ./... -coverprofile cover.out
 
 .PHONY: lint
 lint: ## Run golangci-lint linter & yamllint
-	$(GOLANGCI_LINT) run
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
 
 .PHONY: lint-fix
 lint-fix: ## Run golangci-lint linter and perform fixes
-	$(GOLANGCI_LINT) run --fix
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --fix
 
 ##@ Build
 
@@ -40,6 +38,3 @@ build: fmt vet ## Build sqeletor binary.
 .PHONY: run
 run: fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go
-
-ENVTEST ?= go run sigs.k8s.io/controller-runtime/tools/setup-envtest
-GOLANGCI_LINT = go run github.com/golangci/golangci-lint/cmd/golangci-lint
