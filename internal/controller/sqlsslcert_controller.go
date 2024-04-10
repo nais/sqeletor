@@ -75,11 +75,10 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 	sqlSslCert := &v1beta1.SQLSSLCert{}
 	if err := r.Client.Get(ctx, req.NamespacedName, sqlSslCert); err != nil {
 		if apierrors.IsNotFound(err) {
-			logger.Info("SQLSSLCert not found, aborting reconcile", "sqlsslcert", req.NamespacedName)
+			logger.Info("SQLSSLCert not found, aborting reconcile")
 			return nil
 		}
-		logger.Error(err, "Failed to get SQLSSLCert")
-		return temporaryFailureError(err)
+		return temporaryFailureError(fmt.Errorf("failed to get SQLSSLCert: %w", err))
 	}
 
 	if sqlSslCert.Status.Cert == nil || sqlSslCert.Status.PrivateKey == nil || sqlSslCert.Status.ServerCaCert == nil {
@@ -93,16 +92,13 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 
 	var secretName string
 	var ok bool
-	if secretName, ok = sqlSslCert.GetAnnotations()["sqeletor.nais.io/secret-name"]; !ok {
+	if secretName, ok = sqlSslCert.Annotations["sqeletor.nais.io/secret-name"]; !ok {
 		return fmt.Errorf("secret name not found")
 	}
-	logger = logger.WithValues("secret", secretName)
+	logger = logger.WithValues("secret", "secretName", secretName)
 
 	secret := &core_v1.Secret{ObjectMeta: meta_v1.ObjectMeta{Namespace: req.Namespace, Name: secretName}}
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
-		annotations := secret.GetAnnotations()
-		labels := secret.GetLabels()
-
 		// if new resource, add owner reference and managed-by label
 		if secret.CreationTimestamp.IsZero() {
 			secret.OwnerReferences = []meta_v1.OwnerReference{{
@@ -111,19 +107,19 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 				Name:       sqlSslCert.GetName(),
 				UID:        sqlSslCert.GetUID(),
 			}}
-			labels[managedByKey] = sqeletorFqdnId
+			secret.Labels[managedByKey] = sqeletorFqdnId
 		}
 
 		// if we don't manage this resource, error out
-		if labels[managedByKey] != sqeletorFqdnId {
+		if secret.Labels[managedByKey] != sqeletorFqdnId {
 			return fmt.Errorf("secret %s in namesapce %s is not managed by us: %w", secret.Name, secret.Namespace, errNotManaged)
 		}
 
-		labels[typeKey] = sqeletorFqdnId
-		labels[appKey] = sqlSslCert.GetLabels()[appKey]
-		labels[teamKey] = sqlSslCert.GetLabels()[teamKey]
+		secret.Labels[typeKey] = sqeletorFqdnId
+		secret.Labels[appKey] = sqlSslCert.Labels[appKey]
+		secret.Labels[teamKey] = sqlSslCert.Labels[teamKey]
 
-		annotations[deploymentCorrelationIdKey] = sqlSslCert.GetAnnotations()[deploymentCorrelationIdKey]
+		secret.Annotations[deploymentCorrelationIdKey] = sqlSslCert.Annotations[deploymentCorrelationIdKey]
 
 		secret.StringData = map[string]string{
 			certKey:         *sqlSslCert.Status.Cert,
