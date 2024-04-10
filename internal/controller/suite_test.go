@@ -1,12 +1,17 @@
 package controller
 
 import (
+	"context"
+	"sync"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	sql "github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
+	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/crd/crdloader"
 	"k8s.io/client-go/kubernetes/scheme"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,17 +36,22 @@ func TestControllers(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-	out, err := exec.New().Command("go", "run", "sigs.k8s.io/controller-runtime/tools/setup-envtest", "-p", "path", "use", "1.29.0").CombinedOutput()
+	out, err := exec.New().Command("go", "run", "sigs.k8s.io/controller-runtime/tools/setup-envtest", "-p", "path", "use", "1.28.3").CombinedOutput()
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		BinaryAssetsDirectory: string(out),
+		CRDs: ,
+
 	}
 
 	// cfg is defined in this file globally.
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
+
+	Expect(clientgoscheme.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(sql.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
