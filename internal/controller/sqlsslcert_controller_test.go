@@ -99,11 +99,11 @@ var _ = Describe("SQLSSLCert Controller", func() {
 					Expect(secret.OwnerReferences[0].Kind).To(Equal("SQLSSLCert"))
 					Expect(secret.OwnerReferences[0].APIVersion).To(Equal("sql.cnrm.cloud.google.com/v1beta1"))
 
-					Expect(secret.Labels[managedByKey]).To(Equal("sqeletor.nais.io"))
+					Expect(secret.Labels[managedByKey]).To(Equal(sqeletorFqdnId))
 				})
 			})
 
-			When("a secret already exists", func() {
+			When("a secret already exists that is not owned or managed", func() {
 				BeforeEach(func() {
 					existingSecret := &core_v1.Secret{
 						ObjectMeta: meta_v1.ObjectMeta{
@@ -141,6 +141,106 @@ var _ = Describe("SQLSSLCert Controller", func() {
 
 					Expect(secret.OwnerReferences).To(HaveLen(0))
 					Expect(secret.Labels[managedByKey]).To(BeEmpty())
+				})
+			})
+
+			When("a secret already exists that is owned and managed by correct cert", func() {
+				BeforeEach(func() {
+					existingSecret := &core_v1.Secret{
+						ObjectMeta: meta_v1.ObjectMeta{
+							Name:      "sqeletor-test-secret",
+							Namespace: "default",
+							CreationTimestamp: meta_v1.Time{
+								Time: time.Now(),
+							},
+							Labels: map[string]string{
+								managedByKey: sqeletorFqdnId,
+							},
+							OwnerReferences: []meta_v1.OwnerReference{
+								{
+									APIVersion: "sql.cnrm.cloud.google.com/v1beta1",
+									Kind:       "SQLSSLCert",
+									Name:       "test-cert",
+								},
+							},
+						},
+					}
+					k8sClient = clientBuilder.WithObjects(existingSecret).Build()
+					controller = &SQLSSLCertReconciler{Scheme: scheme.Scheme, Client: k8sClient}
+				})
+
+				It("should update the secret with the certificate data", func() {
+					req := ctrl.Request{NamespacedName: types.NamespacedName{Name: "test-cert", Namespace: "default"}}
+					_, err := controller.Reconcile(ctx, req)
+					Expect(err).ToNot(HaveOccurred())
+
+					secret := &core_v1.Secret{}
+					err = k8sClient.Get(ctx, types.NamespacedName{Name: "sqeletor-test-secret", Namespace: "default"}, secret)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(secret.StringData).To(HaveKeyWithValue(certKey, "dummy-cert"))
+					Expect(secret.StringData).To(HaveKeyWithValue(privateKeyKey, "dummy-private-key"))
+					Expect(secret.StringData).To(HaveKeyWithValue(serverCaCertKey, "dummy-server-ca-cert"))
+				})
+			})
+
+			When("a secret already exists that is owned and managed by other cert", func() {
+				BeforeEach(func() {
+					existingSecret := &core_v1.Secret{
+						ObjectMeta: meta_v1.ObjectMeta{
+							Name:      "sqeletor-test-secret",
+							Namespace: "default",
+							CreationTimestamp: meta_v1.Time{
+								Time: time.Now(),
+							},
+							Labels: map[string]string{
+								managedByKey: sqeletorFqdnId,
+							},
+							OwnerReferences: []meta_v1.OwnerReference{
+								{
+									APIVersion: "sql.cnrm.cloud.google.com/v1beta1",
+									Kind:       "SQLSSLCert",
+									Name:       "other-cert",
+								},
+							},
+						},
+						StringData: map[string]string{
+							certKey:         "existing-cert",
+							privateKeyKey:   "existing-private-key",
+							serverCaCertKey: "existing-server-ca-cert",
+						},
+					}
+					k8sClient = clientBuilder.WithObjects(existingSecret).Build()
+					controller = &SQLSSLCertReconciler{Scheme: scheme.Scheme, Client: k8sClient}
+				})
+
+				It("should not update the secret with the certificate data", func() {
+					req := ctrl.Request{NamespacedName: types.NamespacedName{Name: "test-cert", Namespace: "default"}}
+					_, err := controller.Reconcile(ctx, req)
+					Expect(err).To(HaveOccurred())
+
+					secret := &core_v1.Secret{}
+					err = k8sClient.Get(ctx, types.NamespacedName{Name: "sqeletor-test-secret", Namespace: "default"}, secret)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(secret.StringData).To(HaveKeyWithValue(certKey, "existing-cert"))
+					Expect(secret.StringData).To(HaveKeyWithValue(privateKeyKey, "existing-private-key"))
+					Expect(secret.StringData).To(HaveKeyWithValue(serverCaCertKey, "existing-server-ca-cert"))
+				})
+
+				It("should leave owner reference alone", func() {
+					req := ctrl.Request{NamespacedName: types.NamespacedName{Name: "test-cert", Namespace: "default"}}
+					_, err := controller.Reconcile(ctx, req)
+					Expect(err).To(HaveOccurred())
+
+					secret := &core_v1.Secret{}
+					err = k8sClient.Get(ctx, types.NamespacedName{Name: "sqeletor-test-secret", Namespace: "default"}, secret)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(secret.OwnerReferences).To(HaveLen(1))
+					Expect(secret.OwnerReferences[0].Name).To(Equal("other-cert"))
+					Expect(secret.OwnerReferences[0].Kind).To(Equal("SQLSSLCert"))
+					Expect(secret.OwnerReferences[0].APIVersion).To(Equal("sql.cnrm.cloud.google.com/v1beta1"))
 				})
 			})
 		})

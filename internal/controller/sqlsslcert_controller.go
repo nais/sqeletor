@@ -41,7 +41,10 @@ var (
 	})
 
 	errTemporaryFailure = errors.New("temporary failure")
-	errNotManaged       = errors.New("not managed by controller")
+	errPermanentFailure = errors.New("permanent failure")
+	errNotManaged       = fmt.Errorf("not managed by controller: %w", errPermanentFailure)
+	errOwnedByOtherCert = fmt.Errorf("owned by other cert: %w", errPermanentFailure)
+	errMultipleOwners   = fmt.Errorf("multiple owners: %w", errPermanentFailure)
 )
 
 func init() {
@@ -106,20 +109,32 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 			secret.Annotations = make(map[string]string)
 		}
 
+		ownerReference := meta_v1.OwnerReference{
+			APIVersion: sqlSslCert.GetObjectKind().GroupVersionKind().GroupVersion().String(),
+			Kind:       sqlSslCert.GetObjectKind().GroupVersionKind().Kind,
+			Name:       sqlSslCert.GetName(),
+			UID:        sqlSslCert.GetUID(),
+		}
+
 		// if new resource, add owner reference and managed-by label
 		if secret.CreationTimestamp.IsZero() {
-			secret.OwnerReferences = []meta_v1.OwnerReference{{
-				APIVersion: sqlSslCert.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-				Kind:       sqlSslCert.GetObjectKind().GroupVersionKind().Kind,
-				Name:       sqlSslCert.GetName(),
-				UID:        sqlSslCert.GetUID(),
-			}}
+			secret.OwnerReferences = []meta_v1.OwnerReference{ownerReference}
 			secret.Labels[managedByKey] = sqeletorFqdnId
 		}
 
 		// if we don't manage this resource, error out
 		if secret.Labels[managedByKey] != sqeletorFqdnId {
-			return fmt.Errorf("secret %s in namesapce %s is not managed by us: %w", secret.Name, secret.Namespace, errNotManaged)
+			return fmt.Errorf("secret %s in namespace %s is not managed by us: %w", secret.Name, secret.Namespace, errNotManaged)
+		}
+
+		if len(secret.OwnerReferences) > 1 {
+			return fmt.Errorf("secret %s in namespace %s has multiple owner references: %w", secret.Name, secret.Namespace, errMultipleOwners)
+		}
+
+		if secret.OwnerReferences[0].APIVersion != ownerReference.APIVersion ||
+			secret.OwnerReferences[0].Kind != ownerReference.Kind ||
+			secret.OwnerReferences[0].Name != ownerReference.Name {
+			return fmt.Errorf("secret %s in namespace %s has different owner reference: %w", secret.Name, secret.Namespace, errOwnedByOtherCert)
 		}
 
 		secret.Labels[typeKey] = sqeletorFqdnId
@@ -137,7 +152,7 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 		return nil
 	})
 	if err != nil {
-		if errors.Is(err, errNotManaged) {
+		if errors.Is(err, errPermanentFailure) {
 			return err
 		}
 		return temporaryFailureError(err)
