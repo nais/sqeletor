@@ -41,7 +41,7 @@ var (
 	})
 
 	errTemporaryFailure = errors.New("temporary failure")
-	errNotOwner         = errors.New("not owner")
+	errNotManaged       = errors.New("not managed by controller")
 )
 
 func init() {
@@ -99,28 +99,31 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 	logger = logger.WithValues("secret", secretName)
 
 	secret := &core_v1.Secret{ObjectMeta: meta_v1.ObjectMeta{Namespace: req.Namespace, Name: secretName}}
-
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
-		// if new resource, add ourselves as owner
-		if secret.CreationTimestamp.IsZero() {
-			secret.OwnerReferences = []meta_v1.OwnerReference{}
-		}
-
-		// if we don't own this resource, error out
-		for _, ref := range secret.OwnerReferences {
-			if ref.Name != sqeletorFqdnId {
-				return fmt.Errorf("secret %s in namesapce %s is not owned by %s: %w", secret.Name, secret.Namespace, sqeletorFqdnId, errNotOwner)
-			}
-		}
-
 		annotations := secret.GetAnnotations()
-		annotations[deploymentCorrelationIdKey] = sqlSslCert.GetAnnotations()[deploymentCorrelationIdKey]
-
 		labels := secret.GetLabels()
-		labels[managedByKey] = sqeletorFqdnId
+
+		// if new resource, add owner reference and managed-by label
+		if secret.CreationTimestamp.IsZero() {
+			secret.OwnerReferences = []meta_v1.OwnerReference{{
+				APIVersion: sqlSslCert.GetObjectKind().GroupVersionKind().GroupVersion().String(),
+				Kind:       sqlSslCert.GetObjectKind().GroupVersionKind().Kind,
+				Name:       sqlSslCert.GetName(),
+				UID:        sqlSslCert.GetUID(),
+			}}
+			labels[managedByKey] = sqeletorFqdnId
+		}
+
+		// if we don't manage this resource, error out
+		if labels[managedByKey] != sqeletorFqdnId {
+			return fmt.Errorf("secret %s in namesapce %s is not managed by us: %w", secret.Name, secret.Namespace, errNotManaged)
+		}
+
 		labels[typeKey] = sqeletorFqdnId
 		labels[appKey] = sqlSslCert.GetLabels()[appKey]
 		labels[teamKey] = sqlSslCert.GetLabels()[teamKey]
+
+		annotations[deploymentCorrelationIdKey] = sqlSslCert.GetAnnotations()[deploymentCorrelationIdKey]
 
 		secret.StringData = map[string]string{
 			certKey:         *sqlSslCert.Status.Cert,
@@ -131,10 +134,10 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 		return nil
 	})
 	if err != nil {
-		if !errors.Is(err, errNotOwner) {
-			return temporaryFailureError(err)
+		if errors.Is(err, errNotManaged) {
+			return err
 		}
-		return err
+		return temporaryFailureError(err)
 	}
 
 	logger.Info("Secret reconciled", "operation", op)
