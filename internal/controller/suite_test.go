@@ -1,15 +1,14 @@
 package controller
 
 import (
-	"context"
-	"sync"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	sql "github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
-	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/crd/crdloader"
 	"k8s.io/client-go/kubernetes/scheme"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -36,13 +35,19 @@ func TestControllers(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-	out, err := exec.New().Command("go", "run", "sigs.k8s.io/controller-runtime/tools/setup-envtest", "-p", "path", "use", "1.28.3").CombinedOutput()
+	By("installing envtest")
+	envTestPath, err := exec.New().Command("go", "run", "sigs.k8s.io/controller-runtime/tools/setup-envtest", "-p", "path", "use", "1.28.3").CombinedOutput()
+
+	By("locating CRDs")
+	modCachePath, err := exec.New().Command("go", "list", "-f", "{{ .Dir }}", "github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql").CombinedOutput()
+	Expect(err).NotTo(HaveOccurred())
+	crdPath := filepath.Join(strings.TrimSpace(string(modCachePath)), "../../../../../crds")
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		BinaryAssetsDirectory: string(out),
-		CRDs: ,
-
+		BinaryAssetsDirectory: string(envTestPath),
+		CRDDirectoryPaths:     []string{crdPath},
+		ErrorIfCRDPathMissing: true,
 	}
 
 	// cfg is defined in this file globally.
