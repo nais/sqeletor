@@ -21,17 +21,9 @@ import (
 )
 
 const (
-	deploymentCorrelationIdKey = "nais.io/deploymentCorrelationID"
-	managedByKey               = "app.kubernetes.io/managed-by"
-	typeKey                    = "type"
-	appKey                     = "app"
-	teamKey                    = "team"
-
 	certKey         = "cert.pem"
 	privateKeyKey   = "private-key.pem"
 	serverCaCertKey = "server-ca-cert.pem"
-
-	sqeletorFqdnId = "sqeletor.nais.io"
 )
 
 var (
@@ -40,11 +32,7 @@ var (
 		Help: "Number of requeues for SQLSSLCert",
 	})
 
-	errTemporaryFailure = errors.New("temporary failure")
-	errPermanentFailure = errors.New("permanent failure")
-	errNotManaged       = fmt.Errorf("not managed by controller: %w", errPermanentFailure)
-	errOwnedByOtherCert = fmt.Errorf("owned by other cert: %w", errPermanentFailure)
-	errMultipleOwners   = fmt.Errorf("multiple owners: %w", errPermanentFailure)
+	errOwnedByOther = fmt.Errorf("owned by other cert: %w", errPermanentFailure)
 )
 
 func init() {
@@ -134,7 +122,7 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 		if secret.OwnerReferences[0].APIVersion != ownerReference.APIVersion ||
 			secret.OwnerReferences[0].Kind != ownerReference.Kind ||
 			secret.OwnerReferences[0].Name != ownerReference.Name {
-			return fmt.Errorf("secret %s in namespace %s has different owner reference: %w", secret.Name, secret.Namespace, errOwnedByOtherCert)
+			return fmt.Errorf("secret %s in namespace %s has different owner reference: %w", secret.Name, secret.Namespace, errOwnedByOther)
 		}
 
 		secret.Labels[typeKey] = sqeletorFqdnId
@@ -166,8 +154,4 @@ func (r *SQLSSLCertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.SQLSSLCert{}).
 		Complete(r)
-}
-
-func temporaryFailureError(err error) error {
-	return fmt.Errorf("%w: %w", errTemporaryFailure, err)
 }
