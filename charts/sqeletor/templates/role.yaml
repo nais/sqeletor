@@ -10,6 +10,8 @@ rules:
   - sql.cnrm.cloud.google.com
   resources:
   - sqlsslcerts
+  - sqlusers
+  - sqlinstances
   verbs:
   - get
   - list
