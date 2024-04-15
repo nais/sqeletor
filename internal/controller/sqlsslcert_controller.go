@@ -47,7 +47,6 @@ type SQLSSLCertReconciler struct {
 
 func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	logger.Info("Reconciling SQLSSLCert")
 
 	err := r.reconcileSQLSSLCert(ctx, req)
 	if errors.Is(err, errTemporaryFailure) {
@@ -78,6 +77,8 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 		return nil
 	}
 	logger = logger.WithValues("secret", secretName)
+
+	logger.Info("Reconciling SQLSSLCert")
 
 	if sqlSslCert.Status.Cert == nil || sqlSslCert.Status.PrivateKey == nil || sqlSslCert.Status.ServerCaCert == nil {
 		err := fmt.Errorf("cert not ready: status.cert: %t, status.privateKey: %t, status.serverCaCert: %t",

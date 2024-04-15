@@ -111,6 +111,8 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		return nil
 	}
 
+	logger.Info("Reconciling SQLSSLCert")
+
 	logger = logger.WithValues("envVarPrefix", envVarPrefix, "databaseName", dbName)
 
 	if err := validateSecretKeyRef(sqlUser); err != nil {
@@ -128,6 +130,11 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 	instanceIP, err := r.getInstancePrivateIP(ctx, instanceKey)
 	if err != nil {
 		return err
+	}
+
+	prefixedPasswordKey := envVarPrefix + "_PASSWORD"
+	if secretKey != prefixedPasswordKey {
+		return permanentFailureError(fmt.Errorf("secret key %s does not match expected key %s", secretKey, prefixedPasswordKey))
 	}
 
 	secret := &core_v1.Secret{ObjectMeta: meta_v1.ObjectMeta{Namespace: req.Namespace, Name: secretName}}
@@ -161,10 +168,6 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		secret.Annotations[deploymentCorrelationIdKey] = sqlUser.Annotations[deploymentCorrelationIdKey]
 
 		password := generatePassword()
-		prefixedPasswordKey := envVarPrefix + "_PASSWORD"
-		if secretKey != prefixedPasswordKey {
-			return permanentFailureError(fmt.Errorf("secret key %s does not match expected key %s", secretKey, prefixedPasswordKey))
-		}
 
 		postgresPort := "5432"
 
