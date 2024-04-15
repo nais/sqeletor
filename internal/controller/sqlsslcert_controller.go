@@ -103,14 +103,13 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 			Name:       sqlSslCert.GetName(),
 			UID:        sqlSslCert.GetUID(),
 		}
-		if err := validateOwnership(ownerReference, secret); err != nil {
-			return err
-		}
 
 		// if new resource, add owner reference and managed-by label
 		if secret.CreationTimestamp.IsZero() {
 			secret.OwnerReferences = []meta_v1.OwnerReference{ownerReference}
 			secret.Labels[managedByKey] = sqeletorFqdnId
+		} else if err := validateOwnership(ownerReference, secret); err != nil {
+			return err
 		}
 
 		secret.Labels[typeKey] = sqeletorFqdnId

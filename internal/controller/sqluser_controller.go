@@ -39,7 +39,7 @@ var (
 )
 
 func init() {
-	metrics.Registry.MustRegister(requeuesMetric)
+	metrics.Registry.MustRegister(userRequeuesMetric)
 }
 
 // SQLUserReconciler reconciles a SQLUser object
@@ -77,7 +77,7 @@ func validateSecretKeyRef(sqlUser *v1beta1.SQLUser) error {
 func (r *SQLUserReconciler) getInstancePrivateIP(ctx context.Context, key types.NamespacedName) (string, error) {
 	sqlInstance := &v1beta1.SQLInstance{}
 	if err := r.Client.Get(ctx, key, sqlInstance); err != nil {
-		return "", temporaryFailureError(fmt.Errorf("failed to get SQLUser: %w", err))
+		return "", temporaryFailureError(fmt.Errorf("failed to get SQLInstance: %w", err))
 	}
 	if sqlInstance.Spec.Settings.IpConfiguration.PrivateNetworkRef == nil {
 		return "", permanentFailureError(fmt.Errorf("referenced sql instance is not configured for private ip"))
@@ -139,14 +139,13 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 			Name:       sqlUser.GetName(),
 			UID:        sqlUser.GetUID(),
 		}
-		if err := validateOwnership(ownerReference, secret); err != nil {
-			return err
-		}
 
 		// if new resource, add owner reference and managed-by label
 		if secret.CreationTimestamp.IsZero() {
 			secret.OwnerReferences = []meta_v1.OwnerReference{ownerReference}
 			secret.Labels[managedByKey] = sqeletorFqdnId
+		} else if err := validateOwnership(ownerReference, secret); err != nil {
+			return err
 		}
 
 		secret.Labels[typeKey] = sqeletorFqdnId
