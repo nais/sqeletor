@@ -166,7 +166,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 		secret.Annotations[deploymentCorrelationIdKey] = sqlUser.Annotations[deploymentCorrelationIdKey]
 
-		password := generatePassword()
+		password := determinePassword(secret.Data["PGPASSWORD"])
 
 		postgresPort := "5432"
 
@@ -218,6 +218,18 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 	logger.Info("Secret reconciled", "operation", op)
 	return nil
+}
+
+func determinePassword(b []byte) string {
+	if len(b) == 0 {
+		return generatePassword()
+	}
+	data := make([]byte, base64.StdEncoding.DecodedLen(len(b)))
+	n, err := base64.StdEncoding.Decode(data, b)
+	if err != nil {
+		panic(fmt.Errorf("failed to decode password: %w", err))
+	}
+	return string(data[:n])
 }
 
 func (r *SQLUserReconciler) SetupWithManager(mgr ctrl.Manager) error {
