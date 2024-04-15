@@ -233,7 +233,7 @@ var _ = Describe("SQLUser Controller", func() {
 								},
 							},
 							Data: map[string][]byte{
-								"PGPASSWORD": []byte("cGFzc3dvcmQ="),
+								"PGPASSWORD": []byte("cGFzc3dvcmQ="), // "password" base64 encoded, to verify it's not being overwritten
 							},
 							StringData: map[string]string{
 								"PGDATABASE": "something-else",
@@ -254,6 +254,7 @@ var _ = Describe("SQLUser Controller", func() {
 
 						// just test one value, the rest is tested in a previous test
 						Expect(secret.StringData).To(HaveKeyWithValue("PGDATABASE", dbName))
+						// password should not be updated
 						Expect(secret.StringData).To(HaveKeyWithValue("PGPASSWORD", "password"))
 					})
 				})
