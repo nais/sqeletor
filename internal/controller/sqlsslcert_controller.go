@@ -103,26 +103,14 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 			Name:       sqlSslCert.GetName(),
 			UID:        sqlSslCert.GetUID(),
 		}
+		if err := validateOwnership(ownerReference, secret); err != nil {
+			return err
+		}
 
 		// if new resource, add owner reference and managed-by label
 		if secret.CreationTimestamp.IsZero() {
 			secret.OwnerReferences = []meta_v1.OwnerReference{ownerReference}
 			secret.Labels[managedByKey] = sqeletorFqdnId
-		}
-
-		// if we don't manage this resource, error out
-		if secret.Labels[managedByKey] != sqeletorFqdnId {
-			return fmt.Errorf("secret %s in namespace %s is not managed by us: %w", secret.Name, secret.Namespace, errNotManaged)
-		}
-
-		if len(secret.OwnerReferences) > 1 {
-			return fmt.Errorf("secret %s in namespace %s has multiple owner references: %w", secret.Name, secret.Namespace, errMultipleOwners)
-		}
-
-		if secret.OwnerReferences[0].APIVersion != ownerReference.APIVersion ||
-			secret.OwnerReferences[0].Kind != ownerReference.Kind ||
-			secret.OwnerReferences[0].Name != ownerReference.Name {
-			return fmt.Errorf("secret %s in namespace %s has different owner reference: %w", secret.Name, secret.Namespace, errOwnedByOther)
 		}
 
 		secret.Labels[typeKey] = sqeletorFqdnId

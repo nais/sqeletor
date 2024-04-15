@@ -74,25 +74,6 @@ func validateSecretKeyRef(sqlUser *v1beta1.SQLUser) error {
 	return nil
 }
 
-func validateOwnership(ownerReference meta_v1.OwnerReference, secret *core_v1.Secret) error {
-	// if we don't manage this resource, error out
-	if secret.Labels[managedByKey] != sqeletorFqdnId {
-		return fmt.Errorf("secret %s in namespace %s is not managed by us: %w", secret.Name, secret.Namespace, errNotManaged)
-	}
-
-	if len(secret.OwnerReferences) > 1 {
-		return fmt.Errorf("secret %s in namespace %s has multiple owner references: %w", secret.Name, secret.Namespace, errMultipleOwners)
-	}
-
-	if secret.OwnerReferences[0].APIVersion != ownerReference.APIVersion ||
-		secret.OwnerReferences[0].Kind != ownerReference.Kind ||
-		secret.OwnerReferences[0].Name != ownerReference.Name {
-		return fmt.Errorf("secret %s in namespace %s has different owner reference: %w", secret.Name, secret.Namespace, errOwnedByOther)
-	}
-
-	return nil
-}
-
 func (r *SQLUserReconciler) getInstancePrivateIP(ctx context.Context, key types.NamespacedName) (string, error) {
 	sqlInstance := &v1beta1.SQLInstance{}
 	if err := r.Client.Get(ctx, key, sqlInstance); err != nil {
