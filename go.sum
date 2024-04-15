@@ -55,6 +55,8 @@ github.com/GaijinEntertainment/go-exhaustruct/v3 v3.2.0 h1:sATXp1x6/axKxz2Gjxv8M
 github.com/GaijinEntertainment/go-exhaustruct/v3 v3.2.0/go.mod h1:Nl76DrGNJTA1KJ0LePKBw/vznBX1EHbAZX8mwjR82nI=
 github.com/GoogleCloudPlatform/k8s-config-connector v1.115.0 h1:TXrr4LCw+gr4FKgZCJHk9cF3sZ7+THI7RqW3/IYwpvw=
 github.com/GoogleCloudPlatform/k8s-config-connector v1.115.0/go.mod h1:5WJhUhJ3proxdCHxwdC/iIev8Jiap4rGnkFF8R9e6yA=
+github.com/GoogleCloudPlatform/k8s-config-connector v1.116.0 h1:gkKsgDzWT9E+Eyjwn3nr+en0nw0GIWuiNDXQsySBJ6g=
+github.com/GoogleCloudPlatform/k8s-config-connector v1.116.0/go.mod h1:hHwygEI1RglaJp+UDpNXiBeUOMKXJbr/IubH/NUYZ+M=
 github.com/Masterminds/semver v1.5.0 h1:H65muMkzWKEuNDnfl9d70GUjFniHKHRbFPGBuZ3QEww=
 github.com/Masterminds/semver v1.5.0/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF078ddwwvV3Y=
 github.com/OpenPeeDeeP/depguard/v2 v2.2.0 h1:vDfG60vDtIuf0MEOhmLlLLSzqaRM8EMcgJPdp74zmpA=
