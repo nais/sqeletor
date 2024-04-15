@@ -2,6 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "sqeletor.fullname" . }}
+  annotations:                  
+    prometheus.io/path: /metrics
+    prometheus.io/port: 8080
+    prometheus.io/scrape: true
   labels:
     {{- include "sqeletor.labels" . | nindent 4 }}
 spec:
