@@ -50,7 +50,6 @@ type SQLUserReconciler struct {
 
 func (r *SQLUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	logger.Info("Reconciling SQLUser")
 
 	err := r.reconcileSQLUser(ctx, req)
 	if errors.Is(err, errTemporaryFailure) {
