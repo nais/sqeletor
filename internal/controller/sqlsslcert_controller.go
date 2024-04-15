@@ -72,6 +72,13 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 		return temporaryFailureError(fmt.Errorf("failed to get SQLSSLCert: %w", err))
 	}
 
+	secretName, ok := sqlSslCert.Annotations["sqeletor.nais.io/secret-name"]
+	if !ok {
+		logger.V(4).Info("ignoring: secret name annotation not found")
+		return nil
+	}
+	logger = logger.WithValues("secret", secretName)
+
 	if sqlSslCert.Status.Cert == nil || sqlSslCert.Status.PrivateKey == nil || sqlSslCert.Status.ServerCaCert == nil {
 		err := fmt.Errorf("cert not ready: status.cert: %t, status.privateKey: %t, status.serverCaCert: %t",
 			sqlSslCert.Status.Cert != nil,
@@ -80,13 +87,6 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 		)
 		return temporaryFailureError(err)
 	}
-
-	var secretName string
-	var ok bool
-	if secretName, ok = sqlSslCert.Annotations["sqeletor.nais.io/secret-name"]; !ok {
-		return fmt.Errorf("secret name not found")
-	}
-	logger = logger.WithValues("secret", secretName)
 
 	secret := &core_v1.Secret{ObjectMeta: meta_v1.ObjectMeta{Namespace: req.Namespace, Name: secretName}}
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {

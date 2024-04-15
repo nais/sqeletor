@@ -100,23 +100,25 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		return temporaryFailureError(fmt.Errorf("failed to get SQLUser: %w", err))
 	}
 
+	envVarPrefix, ok := sqlUser.Annotations["sqeletor.nais.io/env-var-prefix"]
+	if !ok {
+		logger.V(4).Info("ignoring: env var prefix annotation not found")
+		return nil
+	}
+	dbName, ok := sqlUser.Annotations["sqeletor.nais.io/database-name"]
+	if !ok {
+		logger.V(4).Info("ignoring: database name annotation not found")
+		return nil
+	}
+
+	logger = logger.WithValues("envVarPrefix", envVarPrefix, "databaseName", dbName)
+
 	if err := validateSecretKeyRef(sqlUser); err != nil {
 		return permanentFailureError(err)
 	}
 	secretName := sqlUser.Spec.Password.ValueFrom.SecretKeyRef.Name
 	secretKey := sqlUser.Spec.Password.ValueFrom.SecretKeyRef.Key
 	logger = logger.WithValues("secretName", secretName, "secretKey", secretKey)
-
-	envVarPrefix, ok := sqlUser.Annotations["sqeletor.nais.io/env-var-prefix"]
-	if !ok {
-		return fmt.Errorf("env var prefix annotation not found")
-	}
-	dbName, ok := sqlUser.Annotations["sqeletor.nais.io/database-name"]
-	if !ok {
-		return fmt.Errorf("database name annotation not found")
-	}
-
-	logger = logger.WithValues("envVarPrefix", envVarPrefix, "databaseName", dbName)
 
 	namespace := req.Namespace
 	if sqlUser.Spec.InstanceRef.Namespace != "" {
