@@ -118,7 +118,11 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 	logger = logger.WithValues("envVarPrefix", envVarPrefix, "databaseName", dbName)
 
-	instanceKey := types.NamespacedName{Name: sqlUser.Spec.InstanceRef.Name, Namespace: sqlUser.Spec.InstanceRef.Namespace}
+	namespace := req.Namespace
+	if sqlUser.Spec.InstanceRef.Namespace != "" {
+		namespace = sqlUser.Spec.InstanceRef.Namespace
+	}
+	instanceKey := types.NamespacedName{Name: sqlUser.Spec.InstanceRef.Name, Namespace: namespace}
 	instanceIP, err := r.getInstancePrivateIP(ctx, instanceKey)
 	if err != nil {
 		return err
