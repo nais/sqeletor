@@ -21,17 +21,9 @@ import (
 )
 
 const (
-	deploymentCorrelationIdKey = "nais.io/deploymentCorrelationID"
-	managedByKey               = "app.kubernetes.io/managed-by"
-	typeKey                    = "type"
-	appKey                     = "app"
-	teamKey                    = "team"
-
 	certKey         = "cert.pem"
 	privateKeyKey   = "private-key.pem"
 	serverCaCertKey = "server-ca-cert.pem"
-
-	sqeletorFqdnId = "sqeletor.nais.io"
 )
 
 var (
@@ -40,11 +32,7 @@ var (
 		Help: "Number of requeues for SQLSSLCert",
 	})
 
-	errTemporaryFailure = errors.New("temporary failure")
-	errPermanentFailure = errors.New("permanent failure")
-	errNotManaged       = fmt.Errorf("not managed by controller: %w", errPermanentFailure)
-	errOwnedByOtherCert = fmt.Errorf("owned by other cert: %w", errPermanentFailure)
-	errMultipleOwners   = fmt.Errorf("multiple owners: %w", errPermanentFailure)
+	errOwnedByOther = fmt.Errorf("owned by other cert: %w", errPermanentFailure)
 )
 
 func init() {
@@ -120,21 +108,8 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 		if secret.CreationTimestamp.IsZero() {
 			secret.OwnerReferences = []meta_v1.OwnerReference{ownerReference}
 			secret.Labels[managedByKey] = sqeletorFqdnId
-		}
-
-		// if we don't manage this resource, error out
-		if secret.Labels[managedByKey] != sqeletorFqdnId {
-			return fmt.Errorf("secret %s in namespace %s is not managed by us: %w", secret.Name, secret.Namespace, errNotManaged)
-		}
-
-		if len(secret.OwnerReferences) > 1 {
-			return fmt.Errorf("secret %s in namespace %s has multiple owner references: %w", secret.Name, secret.Namespace, errMultipleOwners)
-		}
-
-		if secret.OwnerReferences[0].APIVersion != ownerReference.APIVersion ||
-			secret.OwnerReferences[0].Kind != ownerReference.Kind ||
-			secret.OwnerReferences[0].Name != ownerReference.Name {
-			return fmt.Errorf("secret %s in namespace %s has different owner reference: %w", secret.Name, secret.Namespace, errOwnedByOtherCert)
+		} else if err := validateOwnership(ownerReference, secret); err != nil {
+			return err
 		}
 
 		secret.Labels[typeKey] = sqeletorFqdnId
@@ -166,8 +141,4 @@ func (r *SQLSSLCertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.SQLSSLCert{}).
 		Complete(r)
-}
-
-func temporaryFailureError(err error) error {
-	return fmt.Errorf("%w: %w", errTemporaryFailure, err)
 }
