@@ -110,7 +110,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		return nil
 	}
 
-	logger.Info("Reconciling SQLSSLCert")
+	logger.Info("Reconciling SQLUser")
 
 	logger = logger.WithValues("envVarPrefix", envVarPrefix, "databaseName", dbName)
 
