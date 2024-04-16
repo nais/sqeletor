@@ -32,6 +32,7 @@ var _ = Describe("SQLUser Controller", func() {
 			instanceIP        = "10.10.10.10"
 			dbName            = "test-db"
 			userName          = "test-user"
+			resourceId        = "test-resource-id"
 			envVarPrefix      = "PREFIX"
 			secretName        = "test-secret-env"
 			secretKey         = "PREFIX_PASSWORD"
@@ -74,6 +75,7 @@ var _ = Describe("SQLUser Controller", func() {
 							Name:      instanceName,
 							Namespace: namespace,
 						},
+						ResourceID: ptr.To(resourceId),
 					},
 				}
 
@@ -135,8 +137,8 @@ var _ = Describe("SQLUser Controller", func() {
 						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_HOST", instanceIP))
 						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_PORT", "5432"))
 						Expect(secret.StringData).To(HaveKeyWithValue(databaseEnvVarKey, dbName))
-						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_USERNAME", userName))
-						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_URL", MatchRegexp(`^postgresql:\/\/test-user:[^@]+@10.10.10.10:5432\/test-db\?sslcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fcert.pem&sslkey=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fprivate-key.pem&sslmode=verify-ca&sslrootcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fserver-ca-cert.pem$`)))
+						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_USERNAME", resourceId))
+						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_URL", MatchRegexp(`^postgresql:\/\/test-resource-id:[^@]+@10.10.10.10:5432\/test-db\?sslcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fcert.pem&sslkey=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fprivate-key.pem&sslmode=verify-ca&sslrootcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fserver-ca-cert.pem$`)))
 					})
 
 					It("should set owner reference and managed by", func() {

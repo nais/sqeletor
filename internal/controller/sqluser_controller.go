@@ -185,7 +185,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		googleSQLPostgresURL := url.URL{
 			Scheme:   "postgresql",
 			Path:     dbName,
-			User:     url.UserPassword(sqlUser.Name, password),
+			User:     url.UserPassword(*sqlUser.Spec.ResourceID, password),
 			Host:     net.JoinHostPort(instanceIP, postgresPort),
 			RawQuery: queries.Encode(),
 		}
@@ -195,7 +195,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 			envVarPrefix + "_HOST":     instanceIP,
 			envVarPrefix + "_PORT":     postgresPort,
 			envVarPrefix + "_DATABASE": dbName,
-			envVarPrefix + "_USERNAME": sqlUser.Name,
+			envVarPrefix + "_USERNAME": *sqlUser.Spec.ResourceID,
 			envVarPrefix + "_URL":      googleSQLPostgresURL.String(),
 		}
 
