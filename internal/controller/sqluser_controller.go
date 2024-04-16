@@ -166,7 +166,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 		secret.Annotations[deploymentCorrelationIdKey] = sqlUser.Annotations[deploymentCorrelationIdKey]
 
-		password := string(secret.Data["PGPASSWORD"])
+		password := string(secret.Data[prefixedPasswordKey])
 		if len(password) == 0 {
 			password = generatePassword()
 		}
@@ -197,16 +197,6 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 			envVarPrefix + "_DATABASE": dbName,
 			envVarPrefix + "_USERNAME": sqlUser.Name,
 			envVarPrefix + "_URL":      googleSQLPostgresURL.String(),
-
-			"PGSSLMODE":     "verify-ca",
-			"PGSSLROOTCERT": rootCertPath,
-			"PGSSLCERT":     certPath,
-			"PGSSLKEY":      privateKeyPath,
-			"PGHOSTADDR":    instanceIP,
-			"PGPORT":        postgresPort,
-			"PGPASSWORD":    password,
-			"PGDATABASE":    dbName,
-			"PGUSER":        sqlUser.Name,
 		}
 
 		return nil

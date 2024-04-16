@@ -2,10 +2,8 @@ package controller
 
 import (
 	"context"
-	"path/filepath"
 	"time"
 
-	nais_io_v1alpha1 "github.com/nais/liberator/pkg/apis/nais.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	core_v1 "k8s.io/api/core/v1"
@@ -31,14 +29,15 @@ var _ = Describe("SQLUser Controller", func() {
 		var controller *SQLUserReconciler
 
 		const (
-			instanceIP   = "10.10.10.10"
-			dbName       = "test-db"
-			userName     = "test-user"
-			envVarPrefix = "PREFIX"
-			secretName   = "test-secret-env"
-			secretKey    = "PREFIX_PASSWORD"
-			instanceName = "test-instance"
-			namespace    = "default"
+			instanceIP        = "10.10.10.10"
+			dbName            = "test-db"
+			userName          = "test-user"
+			envVarPrefix      = "PREFIX"
+			secretName        = "test-secret-env"
+			secretKey         = "PREFIX_PASSWORD"
+			instanceName      = "test-instance"
+			namespace         = "default"
+			databaseEnvVarKey = envVarPrefix + "_DATABASE"
 		)
 
 		BeforeEach(func() {
@@ -132,25 +131,12 @@ var _ = Describe("SQLUser Controller", func() {
 						err = k8sClient.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, secret)
 						Expect(err).ToNot(HaveOccurred())
 
-						rootCertPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, serverCaCertKey)
-						certPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, certKey)
-						privateKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, privateKeyKey)
-
 						Expect(secret.StringData).To(HaveKey(envVarPrefix + "_PASSWORD"))
 						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_HOST", instanceIP))
 						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_PORT", "5432"))
-						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_DATABASE", dbName))
+						Expect(secret.StringData).To(HaveKeyWithValue(databaseEnvVarKey, dbName))
 						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_USERNAME", userName))
 						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_URL", MatchRegexp(`^postgresql:\/\/test-user:[^@]+@10.10.10.10:5432\/test-db\?sslcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fcert.pem&sslkey=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fprivate-key.pem&sslmode=verify-ca&sslrootcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fserver-ca-cert.pem$`)))
-						Expect(secret.StringData).To(HaveKeyWithValue("PGSSLMODE", "verify-ca"))
-						Expect(secret.StringData).To(HaveKeyWithValue("PGSSLROOTCERT", rootCertPath))
-						Expect(secret.StringData).To(HaveKeyWithValue("PGSSLCERT", certPath))
-						Expect(secret.StringData).To(HaveKeyWithValue("PGSSLKEY", privateKeyPath))
-						Expect(secret.StringData).To(HaveKeyWithValue("PGHOSTADDR", instanceIP))
-						Expect(secret.StringData).To(HaveKeyWithValue("PGPORT", "5432"))
-						Expect(secret.StringData).To(HaveKey("PGPASSWORD"))
-						Expect(secret.StringData).To(HaveKeyWithValue("PGDATABASE", dbName))
-						Expect(secret.StringData).To(HaveKeyWithValue("PGUSER", userName))
 					})
 
 					It("should set owner reference and managed by", func() {
@@ -233,10 +219,10 @@ var _ = Describe("SQLUser Controller", func() {
 								},
 							},
 							Data: map[string][]byte{
-								"PGPASSWORD": []byte("testpassword"),
+								envVarPrefix + "_PASSWORD": []byte("testpassword"),
 							},
 							StringData: map[string]string{
-								"PGDATABASE": "something-else",
+								databaseEnvVarKey: "something-else",
 							},
 						}
 						k8sClient = clientBuilder.WithObjects(existingSecret).Build()
@@ -253,9 +239,9 @@ var _ = Describe("SQLUser Controller", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						// just test one value, the rest is tested in a previous test
-						Expect(secret.StringData).To(HaveKeyWithValue("PGDATABASE", dbName))
+						Expect(secret.StringData).To(HaveKeyWithValue(databaseEnvVarKey, dbName))
 						// password should not be updated
-						Expect(secret.StringData).To(HaveKeyWithValue("PGPASSWORD", "testpassword"))
+						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_PASSWORD", "testpassword"))
 					})
 				})
 
@@ -280,7 +266,7 @@ var _ = Describe("SQLUser Controller", func() {
 								},
 							},
 							StringData: map[string]string{
-								"PGDATABASE": "something-else",
+								databaseEnvVarKey: "something-else",
 							},
 						}
 						k8sClient = clientBuilder.WithObjects(existingSecret).Build()
@@ -296,7 +282,7 @@ var _ = Describe("SQLUser Controller", func() {
 						err = k8sClient.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, secret)
 						Expect(err).ToNot(HaveOccurred())
 
-						Expect(secret.StringData).To(HaveKeyWithValue("PGDATABASE", "something-else"))
+						Expect(secret.StringData).To(HaveKeyWithValue(databaseEnvVarKey, "something-else"))
 					})
 
 					It("should leave owner reference alone", func() {
