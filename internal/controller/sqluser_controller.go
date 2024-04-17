@@ -200,6 +200,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 			envVarPrefix + "_SSLROOTCERT": rootCertPath,
 			envVarPrefix + "_SSLCERT":     certPath,
 			envVarPrefix + "_SSLKEY":      keyPath,
+			envVarPrefix + "_SSLMODE":     "verify-ca",
 		}
 
 		return nil

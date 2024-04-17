@@ -141,6 +141,7 @@ var _ = Describe("SQLUser Controller", func() {
 						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_SSLROOTCERT", "/var/run/secrets/nais.io/sqlcertificate/root-cert.pem"))
 						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_SSLCERT", "/var/run/secrets/nais.io/sqlcertificate/cert.pem"))
 						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_SSLKEY", "/var/run/secrets/nais.io/sqlcertificate/key.pem"))
+						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_SSLMODE", "verify-ca"))
 						Expect(secret.StringData).To(HaveKeyWithValue(envVarPrefix+"_URL", MatchRegexp(`^postgresql:\/\/test-resource-id:[^@]+@10.10.10.10:5432\/test-db\?sslcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fcert.pem&sslkey=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fkey.pem&sslmode=verify-ca&sslrootcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Froot-cert.pem$`)))
 					})
 
