@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	certKey         = "cert.pem"
-	privateKeyKey   = "private-key.pem"
-	serverCaCertKey = "server-ca-cert.pem"
+	certKey     = "cert.pem"
+	keyKey      = "key.pem"
+	rootCertKey = "root-cert.pem"
 )
 
 var (
@@ -120,9 +120,9 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 		secret.Annotations[deploymentCorrelationIdKey] = sqlSslCert.Annotations[deploymentCorrelationIdKey]
 
 		secret.StringData = map[string]string{
-			certKey:         *sqlSslCert.Status.Cert,
-			privateKeyKey:   *sqlSslCert.Status.PrivateKey,
-			serverCaCertKey: *sqlSslCert.Status.ServerCaCert,
+			certKey:     *sqlSslCert.Status.Cert,
+			keyKey:      *sqlSslCert.Status.PrivateKey,
+			rootCertKey: *sqlSslCert.Status.ServerCaCert,
 		}
 
 		return nil

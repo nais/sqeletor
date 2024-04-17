@@ -173,14 +173,14 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 		postgresPort := "5432"
 
-		rootCertPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, serverCaCertKey)
+		rootCertPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, rootCertKey)
 		certPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, certKey)
-		privateKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, privateKeyKey)
+		keyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, keyKey)
 
 		queries := url.Values{}
 		queries.Add("sslmode", "verify-ca")
 		queries.Add("sslcert", certPath)
-		queries.Add("sslkey", privateKeyPath)
+		queries.Add("sslkey", keyPath)
 		queries.Add("sslrootcert", rootCertPath)
 		googleSQLPostgresURL := url.URL{
 			Scheme:   "postgresql",
@@ -191,15 +191,15 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		}
 
 		secret.StringData = map[string]string{
-			prefixedPasswordKey:                  password,
-			envVarPrefix + "_HOST":               instanceIP,
-			envVarPrefix + "_PORT":               postgresPort,
-			envVarPrefix + "_DATABASE":           dbName,
-			envVarPrefix + "_USERNAME":           *sqlUser.Spec.ResourceID,
-			envVarPrefix + "_URL":                googleSQLPostgresURL.String(),
-			envVarPrefix + "_SSL_ROOT_CERT_PATH": rootCertPath,
-			envVarPrefix + "_SSL_CERT_PATH":      certPath,
-			envVarPrefix + "_SSL_KEY_PATH":       privateKeyPath,
+			prefixedPasswordKey:           password,
+			envVarPrefix + "_HOST":        instanceIP,
+			envVarPrefix + "_PORT":        postgresPort,
+			envVarPrefix + "_DATABASE":    dbName,
+			envVarPrefix + "_USERNAME":    *sqlUser.Spec.ResourceID,
+			envVarPrefix + "_URL":         googleSQLPostgresURL.String(),
+			envVarPrefix + "_SSLROOTCERT": rootCertPath,
+			envVarPrefix + "_SSLCERT":     certPath,
+			envVarPrefix + "_SSLKEY":      keyPath,
 		}
 
 		return nil

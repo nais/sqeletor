@@ -81,8 +81,8 @@ var _ = Describe("SQLSSLCert Controller", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(secret.StringData).To(HaveKeyWithValue(certKey, "dummy-cert"))
-					Expect(secret.StringData).To(HaveKeyWithValue(privateKeyKey, "dummy-private-key"))
-					Expect(secret.StringData).To(HaveKeyWithValue(serverCaCertKey, "dummy-server-ca-cert"))
+					Expect(secret.StringData).To(HaveKeyWithValue(keyKey, "dummy-private-key"))
+					Expect(secret.StringData).To(HaveKeyWithValue(rootCertKey, "dummy-server-ca-cert"))
 				})
 
 				It("should set owner reference and managed by", func() {
@@ -179,8 +179,8 @@ var _ = Describe("SQLSSLCert Controller", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(secret.StringData).To(HaveKeyWithValue(certKey, "dummy-cert"))
-					Expect(secret.StringData).To(HaveKeyWithValue(privateKeyKey, "dummy-private-key"))
-					Expect(secret.StringData).To(HaveKeyWithValue(serverCaCertKey, "dummy-server-ca-cert"))
+					Expect(secret.StringData).To(HaveKeyWithValue(keyKey, "dummy-private-key"))
+					Expect(secret.StringData).To(HaveKeyWithValue(rootCertKey, "dummy-server-ca-cert"))
 				})
 			})
 
@@ -205,9 +205,9 @@ var _ = Describe("SQLSSLCert Controller", func() {
 							},
 						},
 						StringData: map[string]string{
-							certKey:         "existing-cert",
-							privateKeyKey:   "existing-private-key",
-							serverCaCertKey: "existing-server-ca-cert",
+							certKey:     "existing-cert",
+							keyKey:      "existing-private-key",
+							rootCertKey: "existing-server-ca-cert",
 						},
 					}
 					k8sClient = clientBuilder.WithObjects(existingSecret).Build()
@@ -224,8 +224,8 @@ var _ = Describe("SQLSSLCert Controller", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(secret.StringData).To(HaveKeyWithValue(certKey, "existing-cert"))
-					Expect(secret.StringData).To(HaveKeyWithValue(privateKeyKey, "existing-private-key"))
-					Expect(secret.StringData).To(HaveKeyWithValue(serverCaCertKey, "existing-server-ca-cert"))
+					Expect(secret.StringData).To(HaveKeyWithValue(keyKey, "existing-private-key"))
+					Expect(secret.StringData).To(HaveKeyWithValue(rootCertKey, "existing-server-ca-cert"))
 				})
 
 				It("should leave owner reference alone", func() {
