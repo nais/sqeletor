@@ -191,12 +191,15 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		}
 
 		secret.StringData = map[string]string{
-			prefixedPasswordKey:        password,
-			envVarPrefix + "_HOST":     instanceIP,
-			envVarPrefix + "_PORT":     postgresPort,
-			envVarPrefix + "_DATABASE": dbName,
-			envVarPrefix + "_USERNAME": *sqlUser.Spec.ResourceID,
-			envVarPrefix + "_URL":      googleSQLPostgresURL.String(),
+			prefixedPasswordKey:                  password,
+			envVarPrefix + "_HOST":               instanceIP,
+			envVarPrefix + "_PORT":               postgresPort,
+			envVarPrefix + "_DATABASE":           dbName,
+			envVarPrefix + "_USERNAME":           *sqlUser.Spec.ResourceID,
+			envVarPrefix + "_URL":                googleSQLPostgresURL.String(),
+			envVarPrefix + "_SSL_ROOT_CERT_PATH": rootCertPath,
+			envVarPrefix + "_SSL_CERT_PATH":      certPath,
+			envVarPrefix + "_SSL_KEY_PATH":       privateKeyPath,
 		}
 
 		return nil
