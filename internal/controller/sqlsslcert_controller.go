@@ -2,27 +2,29 @@ package controller
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
 	"github.com/prometheus/client_golang/prometheus"
 	core_v1 "k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
-
-	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 const (
 	certKey     = "cert.pem"
-	keyKey      = "key.pem"
+	pemKeyKey   = "key.pem"
+	derKeyKey   = "key.pk8"
 	rootCertKey = "root-cert.pem"
 )
 
@@ -119,9 +121,16 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 
 		secret.Annotations[deploymentCorrelationIdKey] = sqlSslCert.Annotations[deploymentCorrelationIdKey]
 
+		derKey, err := pemToPkcs8Der(*sqlSslCert.Status.PrivateKey)
+		if err != nil {
+			logger.Info("Failed to convert cert to DER", "error", err)
+		}
+		secret.Data = map[string][]byte{
+			derKeyKey: derKey,
+		}
 		secret.StringData = map[string]string{
 			certKey:     *sqlSslCert.Status.Cert,
-			keyKey:      *sqlSslCert.Status.PrivateKey,
+			pemKeyKey:   *sqlSslCert.Status.PrivateKey,
 			rootCertKey: *sqlSslCert.Status.ServerCaCert,
 		}
 
@@ -142,4 +151,35 @@ func (r *SQLSSLCertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.SQLSSLCert{}).
 		Complete(r)
+}
+
+func decodePrivateKeyPem(in []byte) ([]byte, error) {
+	for {
+		var block *pem.Block
+		block, in = pem.Decode(in)
+		if block == nil {
+			return nil, errors.New("failed to decode PEM block")
+		}
+		if block.Type == "RSA PRIVATE KEY" {
+			return block.Bytes, nil
+		}
+	}
+}
+func pemToPkcs8Der(pem string) ([]byte, error) {
+	der, err := decodePrivateKeyPem([]byte(pem))
+	if err != nil {
+		return nil, err
+	}
+
+	rsaKey, err := x509.ParsePKCS1PrivateKey(der)
+	if err != nil {
+		return nil, err
+	}
+
+	pkcs8WrappedRsaKey, err := x509.MarshalPKCS8PrivateKey(rsaKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return pkcs8WrappedRsaKey, nil
 }

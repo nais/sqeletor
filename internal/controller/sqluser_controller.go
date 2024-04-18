@@ -175,7 +175,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 		rootCertPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, rootCertKey)
 		certPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, certKey)
-		keyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, keyKey)
+		keyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, pemKeyKey)
 
 		queries := url.Values{}
 		queries.Add("sslmode", "verify-ca")
