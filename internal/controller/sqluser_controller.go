@@ -175,12 +175,13 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 		rootCertPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, rootCertKey)
 		certPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, certKey)
-		keyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, pemKeyKey)
+		pk1PemKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, pk1PemKeyKey)
+		pk8DerKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, pk8DerKeyKey)
 
 		queries := url.Values{}
 		queries.Add("sslmode", "verify-ca")
 		queries.Add("sslcert", certPath)
-		queries.Add("sslkey", keyPath)
+		queries.Add("sslkey", pk1PemKeyPath)
 		queries.Add("sslrootcert", rootCertPath)
 		googleSQLPostgresURL := url.URL{
 			Scheme:   "postgresql",
@@ -199,7 +200,8 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 			envVarPrefix + "_URL":         googleSQLPostgresURL.String(),
 			envVarPrefix + "_SSLROOTCERT": rootCertPath,
 			envVarPrefix + "_SSLCERT":     certPath,
-			envVarPrefix + "_SSLKEY":      keyPath,
+			envVarPrefix + "_SSLKEY":      pk1PemKeyPath,
+			envVarPrefix + "_SSLKEY_PK8":  pk8DerKeyPath,
 			envVarPrefix + "_SSLMODE":     "verify-ca",
 		}
 

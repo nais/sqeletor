@@ -95,9 +95,9 @@ KChGB9mxeIDV+wqRFCOK0IVOlBk4e+O2mk31LrXibw==
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(secret.StringData).To(HaveKeyWithValue(certKey, "dummy-cert"))
-					Expect(secret.StringData).To(HaveKeyWithValue(pemKeyKey, testKey))
+					Expect(secret.StringData).To(HaveKeyWithValue(pk1PemKeyKey, testKey))
 					Expect(secret.StringData).To(HaveKeyWithValue(rootCertKey, "dummy-server-ca-cert"))
-					Expect(secret.Data).To(HaveKeyWithValue(derKeyKey, testDerKey))
+					Expect(secret.Data).To(HaveKeyWithValue(pk8DerKeyKey, testDerKey))
 				})
 
 				It("should set owner reference and managed by", func() {
@@ -194,7 +194,7 @@ KChGB9mxeIDV+wqRFCOK0IVOlBk4e+O2mk31LrXibw==
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(secret.StringData).To(HaveKeyWithValue(certKey, "dummy-cert"))
-					Expect(secret.StringData).To(HaveKeyWithValue(pemKeyKey, testKey))
+					Expect(secret.StringData).To(HaveKeyWithValue(pk1PemKeyKey, testKey))
 					Expect(secret.StringData).To(HaveKeyWithValue(rootCertKey, "dummy-server-ca-cert"))
 				})
 			})
@@ -220,9 +220,9 @@ KChGB9mxeIDV+wqRFCOK0IVOlBk4e+O2mk31LrXibw==
 							},
 						},
 						StringData: map[string]string{
-							certKey:     "existing-cert",
-							pemKeyKey:   "existing-private-key",
-							rootCertKey: "existing-server-ca-cert",
+							certKey:      "existing-cert",
+							pk1PemKeyKey: "existing-private-key",
+							rootCertKey:  "existing-server-ca-cert",
 						},
 					}
 					k8sClient = clientBuilder.WithObjects(existingSecret).Build()
@@ -239,7 +239,7 @@ KChGB9mxeIDV+wqRFCOK0IVOlBk4e+O2mk31LrXibw==
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(secret.StringData).To(HaveKeyWithValue(certKey, "existing-cert"))
-					Expect(secret.StringData).To(HaveKeyWithValue(pemKeyKey, "existing-private-key"))
+					Expect(secret.StringData).To(HaveKeyWithValue(pk1PemKeyKey, "existing-private-key"))
 					Expect(secret.StringData).To(HaveKeyWithValue(rootCertKey, "existing-server-ca-cert"))
 				})
 

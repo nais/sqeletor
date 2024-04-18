@@ -22,10 +22,10 @@ import (
 )
 
 const (
-	certKey     = "cert.pem"
-	pemKeyKey   = "key.pem"
-	derKeyKey   = "key.pk8"
-	rootCertKey = "root-cert.pem"
+	certKey      = "cert.pem"
+	pk1PemKeyKey = "key.pem"
+	pk8DerKeyKey = "key.pk8"
+	rootCertKey  = "root-cert.pem"
 )
 
 var (
@@ -126,12 +126,12 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 			logger.Info("Failed to convert cert to DER", "error", err)
 		}
 		secret.Data = map[string][]byte{
-			derKeyKey: derKey,
+			pk8DerKeyKey: derKey,
 		}
 		secret.StringData = map[string]string{
-			certKey:     *sqlSslCert.Status.Cert,
-			pemKeyKey:   *sqlSslCert.Status.PrivateKey,
-			rootCertKey: *sqlSslCert.Status.ServerCaCert,
+			certKey:      *sqlSslCert.Status.Cert,
+			pk1PemKeyKey: *sqlSslCert.Status.PrivateKey,
+			rootCertKey:  *sqlSslCert.Status.ServerCaCert,
 		}
 
 		return nil
