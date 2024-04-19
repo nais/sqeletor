@@ -28,7 +28,6 @@ import (
 )
 
 type UrlData struct {
-	Scheme       string
 	Host         string
 	Username     string
 	Password     string
@@ -186,7 +185,6 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		pk8DerKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, pk8DerKeyKey)
 
 		urlData := UrlData{
-			Scheme:       "postgresql",
 			Host:         net.JoinHostPort(instanceIP, postgresPort),
 			Username:     *sqlUser.Spec.ResourceID,
 			Password:     password,
@@ -195,11 +193,10 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 			KeyPath:      pk1PemKeyPath,
 			RootCertPath: rootCertPath,
 		}
-		googleSQLPostgresURL := makeUrl(urlData)
+		googleSQLPostgresURL := makePostgresUrl(urlData)
 
-		urlData.Scheme = "jdbc:postgresql"
 		urlData.KeyPath = pk8DerKeyPath
-		googleSQLJDBCURL := makeUrl(urlData)
+		googleSQLJDBCURL := makeJDBCUrl(urlData)
 
 		secret.StringData = map[string]string{
 			prefixedPasswordKey:           password,
@@ -230,16 +227,32 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 	return nil
 }
 
-func makeUrl(postgresData UrlData) url.URL {
+func makePostgresUrl(postgresData UrlData) url.URL {
 	queries := url.Values{}
 	queries.Add("sslmode", "verify-ca")
 	queries.Add("sslcert", postgresData.CertPath)
 	queries.Add("sslkey", postgresData.KeyPath)
 	queries.Add("sslrootcert", postgresData.RootCertPath)
 	return url.URL{
-		Scheme:   postgresData.Scheme,
+		Scheme:   "postgresql",
 		Path:     postgresData.Database,
 		User:     url.UserPassword(postgresData.Username, postgresData.Password),
+		Host:     postgresData.Host,
+		RawQuery: queries.Encode(),
+	}
+}
+
+func makeJDBCUrl(postgresData UrlData) url.URL {
+	queries := url.Values{}
+	queries.Add("sslmode", "verify-ca")
+	queries.Add("sslcert", postgresData.CertPath)
+	queries.Add("sslkey", postgresData.KeyPath)
+	queries.Add("sslrootcert", postgresData.RootCertPath)
+	queries.Add("user", postgresData.Username)
+	queries.Add("password", postgresData.Password)
+	return url.URL{
+		Scheme:   "jdbc:postgresql",
+		Path:     postgresData.Database,
 		Host:     postgresData.Host,
 		RawQuery: queries.Encode(),
 	}
