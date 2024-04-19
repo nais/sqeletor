@@ -27,15 +27,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const ()
-
 var (
 	userRequeuesMetric = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "sqluser_requeues",
 		Help: "Number of requeues for SQLUser",
 	})
-
-	errOwnedByOtherUser = fmt.Errorf("owned by other user: %w", errPermanentFailure)
 )
 
 func init() {

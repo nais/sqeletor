@@ -33,8 +33,6 @@ var (
 		Name: "sqlsslcert_requeues",
 		Help: "Number of requeues for SQLSSLCert",
 	})
-
-	errOwnedByOther = fmt.Errorf("owned by other cert: %w", errPermanentFailure)
 )
 
 func init() {

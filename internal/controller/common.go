@@ -23,6 +23,7 @@ var (
 	errPermanentFailure = errors.New("permanent failure")
 	errNotManaged       = fmt.Errorf("not managed by controller: %w", errPermanentFailure)
 	errMultipleOwners   = fmt.Errorf("multiple owners: %w", errPermanentFailure)
+	errOwnedByOther     = fmt.Errorf("owned by other: %w", errPermanentFailure)
 )
 
 func temporaryFailureError(err error) error {
