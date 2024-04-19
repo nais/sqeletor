@@ -27,6 +27,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+type UrlData struct {
+	Scheme       string
+	Host         string
+	Username     string
+	Password     string
+	Database     string
+	CertPath     string
+	KeyPath      string
+	RootCertPath string
+}
+
 var (
 	userRequeuesMetric = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "sqluser_requeues",
@@ -174,18 +185,21 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		pk1PemKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, pk1PemKeyKey)
 		pk8DerKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, pk8DerKeyKey)
 
-		queries := url.Values{}
-		queries.Add("sslmode", "verify-ca")
-		queries.Add("sslcert", certPath)
-		queries.Add("sslkey", pk1PemKeyPath)
-		queries.Add("sslrootcert", rootCertPath)
-		googleSQLPostgresURL := url.URL{
-			Scheme:   "postgresql",
-			Path:     dbName,
-			User:     url.UserPassword(*sqlUser.Spec.ResourceID, password),
-			Host:     net.JoinHostPort(instanceIP, postgresPort),
-			RawQuery: queries.Encode(),
+		urlData := UrlData{
+			Scheme:       "postgresql",
+			Host:         net.JoinHostPort(instanceIP, postgresPort),
+			Username:     *sqlUser.Spec.ResourceID,
+			Password:     password,
+			Database:     dbName,
+			CertPath:     certPath,
+			KeyPath:      pk1PemKeyPath,
+			RootCertPath: rootCertPath,
 		}
+		googleSQLPostgresURL := makeUrl(urlData)
+
+		urlData.Scheme = "jdbc:postgresql"
+		urlData.KeyPath = pk8DerKeyPath
+		googleSQLJDBCURL := makeUrl(urlData)
 
 		secret.StringData = map[string]string{
 			prefixedPasswordKey:           password,
@@ -194,6 +208,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 			envVarPrefix + "_DATABASE":    dbName,
 			envVarPrefix + "_USERNAME":    *sqlUser.Spec.ResourceID,
 			envVarPrefix + "_URL":         googleSQLPostgresURL.String(),
+			envVarPrefix + "_JDBC_URL":    googleSQLJDBCURL.String(),
 			envVarPrefix + "_SSLROOTCERT": rootCertPath,
 			envVarPrefix + "_SSLCERT":     certPath,
 			envVarPrefix + "_SSLKEY":      pk1PemKeyPath,
@@ -213,6 +228,21 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 	logger.Info("Secret reconciled", "operation", op)
 	return nil
+}
+
+func makeUrl(postgresData UrlData) url.URL {
+	queries := url.Values{}
+	queries.Add("sslmode", "verify-ca")
+	queries.Add("sslcert", postgresData.CertPath)
+	queries.Add("sslkey", postgresData.KeyPath)
+	queries.Add("sslrootcert", postgresData.RootCertPath)
+	return url.URL{
+		Scheme:   postgresData.Scheme,
+		Path:     postgresData.Database,
+		User:     url.UserPassword(postgresData.Username, postgresData.Password),
+		Host:     postgresData.Host,
+		RawQuery: queries.Encode(),
+	}
 }
 
 func (r *SQLUserReconciler) SetupWithManager(mgr ctrl.Manager) error {
