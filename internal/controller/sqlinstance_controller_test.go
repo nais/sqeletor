@@ -6,13 +6,15 @@ import (
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	core_v1 "k8s.io/api/core/v1"
+
+	//core_v1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	//"k8s.io/apimachinery/pkg/util/intstr"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -43,7 +45,21 @@ var _ = Describe("SQLInstance Controller", func() {
 						Name:      "test-instance",
 						Namespace: "default",
 					},
-					Spec: v1beta1.SQLInstanceSpec{},
+					Spec: v1beta1.SQLInstanceSpec{
+						ResourceID: ptr.To("resource-id"),
+					},
+					Status: v1beta1.SQLInstanceStatus{
+						IpAddress: []v1beta1.InstanceIpAddressStatus{
+							{
+								IpAddress: ptr.To("10.10.10.10"),
+								Type:      ptr.To("PRIVATE"),
+							},
+							{
+								IpAddress: ptr.To("35.35.35.35"),
+								Type:      ptr.To("PRIMARY"),
+							},
+						},
+					},
 				}
 				clientBuilder = clientBuilder.WithObjects(existingSQLInstance)
 			})
@@ -68,19 +84,24 @@ var _ = Describe("SQLInstance Controller", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					netpol := &v1.NetworkPolicy{}
-					err = k8sClient.Get(ctx, types.NamespacedName{Name: "sqeletor-instance-netpol", Namespace: "default"}, netpol)
+					err = k8sClient.Get(ctx, types.NamespacedName{Name: "sql-test-instance-resource-id", Namespace: "default"}, netpol)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(netpol.Spec.Egress).To(HaveExactElements([]v1.NetworkPolicyEgressRule{
-						{Ports: []v1.NetworkPolicyPort{
-							{
-								Port: &intstr.IntOrString{IntVal: 5432},
-							},
-						},
+						{
 							To: []v1.NetworkPolicyPeer{
 								{
 									IPBlock: &v1.IPBlock{
-										CIDR: "",
+										CIDR: "10.10.10.10/32",
+									},
+								},
+							},
+						},
+						{
+							To: []v1.NetworkPolicyPeer{
+								{
+									IPBlock: &v1.IPBlock{
+										CIDR: "35.35.35.35/32",
 									},
 								},
 							},
@@ -94,7 +115,7 @@ var _ = Describe("SQLInstance Controller", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					netpol := &v1.NetworkPolicy{}
-					err = k8sClient.Get(ctx, types.NamespacedName{Name: "sqeletor-instance-netpol", Namespace: "default"}, netpol)
+					err = k8sClient.Get(ctx, types.NamespacedName{Name: "sql-test-instance-resource-id", Namespace: "default"}, netpol)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(netpol.OwnerReferences).To(HaveLen(1))
