@@ -148,3 +148,9 @@ func (r *SQLInstanceReconciler) reconcile(ctx context.Context, req ctrl.Request)
 	logger.Info("Netpol reconciled", "operation", op)
 	return nil
 }
+
+func (r *SQLInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&v1beta1.SQLInstance{}).
+		Complete(r)
+}
