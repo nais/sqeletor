@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,20 +33,21 @@ func permanentFailureError(err error) error {
 	return fmt.Errorf("%w: %w", errPermanentFailure, err)
 }
 
-func validateOwnership(ownerReference meta_v1.OwnerReference, secret *core_v1.Secret) error {
+func validateOwnership(ownerReference meta_v1.OwnerReference, meta meta_v1.Object) error {
 	// if we don't manage this resource, error out
-	if secret.Labels[managedByKey] != sqeletorFqdnId {
-		return fmt.Errorf("secret %s in namespace %s is not managed by us: %w", secret.Name, secret.Namespace, errNotManaged)
+	if meta.GetLabels()[managedByKey] != sqeletorFqdnId {
+		return fmt.Errorf("resource %s in namespace %s is not managed by us: %w", meta.GetName(), meta.GetNamespace(), errNotManaged)
 	}
 
-	if len(secret.OwnerReferences) > 1 {
-		return fmt.Errorf("secret %s in namespace %s has multiple owner references: %w", secret.Name, secret.Namespace, errMultipleOwners)
+	ownerReferences := meta.GetOwnerReferences()
+	if len(ownerReferences) > 1 {
+		return fmt.Errorf("resource %s in namespace %s has multiple owner references: %w", meta.GetName(), meta.GetNamespace(), errMultipleOwners)
 	}
 
-	if secret.OwnerReferences[0].APIVersion != ownerReference.APIVersion ||
-		secret.OwnerReferences[0].Kind != ownerReference.Kind ||
-		secret.OwnerReferences[0].Name != ownerReference.Name {
-		return fmt.Errorf("secret %s in namespace %s has different owner reference: %w", secret.Name, secret.Namespace, errOwnedByOther)
+	if ownerReferences[0].APIVersion != ownerReference.APIVersion ||
+		ownerReferences[0].Kind != ownerReference.Kind ||
+		ownerReferences[0].Name != ownerReference.Name {
+		return fmt.Errorf("resource %s in namespace %s has different owner reference: %w", meta.GetName(), meta.GetNamespace(), errOwnedByOther)
 	}
 
 	return nil

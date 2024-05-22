@@ -25,3 +25,4 @@ Temporary Items
 *.out
 go.work
 bin
+.direnv

@@ -28,12 +28,10 @@ const (
 	rootCertKey  = "root-cert.pem"
 )
 
-var (
-	requeuesMetric = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "sqlsslcert_requeues",
-		Help: "Number of requeues for SQLSSLCert",
-	})
-)
+var requeuesMetric = prometheus.NewCounter(prometheus.CounterOpts{
+	Name: "sqlsslcert_requeues",
+	Help: "Number of requeues for SQLSSLCert",
+})
 
 func init() {
 	metrics.Registry.MustRegister(requeuesMetric)
@@ -163,6 +161,7 @@ func decodePrivateKeyPem(in []byte) ([]byte, error) {
 		}
 	}
 }
+
 func pemToPkcs8Der(pem string) ([]byte, error) {
 	der, err := decodePrivateKeyPem([]byte(pem))
 	if err != nil {

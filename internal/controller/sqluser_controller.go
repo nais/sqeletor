@@ -37,12 +37,10 @@ type UrlData struct {
 	RootCertPath string
 }
 
-var (
-	userRequeuesMetric = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "sqluser_requeues",
-		Help: "Number of requeues for SQLUser",
-	})
-)
+var userRequeuesMetric = prometheus.NewCounter(prometheus.CounterOpts{
+	Name: "sqluser_requeues",
+	Help: "Number of requeues for SQLUser",
+})
 
 func init() {
 	metrics.Registry.MustRegister(userRequeuesMetric)
@@ -215,7 +213,6 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 		return nil
 	})
-
 	if err != nil {
 		if errors.Is(err, errPermanentFailure) {
 			return err
