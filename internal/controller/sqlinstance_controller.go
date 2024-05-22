@@ -32,7 +32,7 @@ func init() {
 	metrics.Registry.MustRegister(instanceRequeuesMetric)
 }
 
-// SQLInstanceReconciler reconciles a SQLUser object
+// SQLInstanceReconciler reconciles a SQLInstance object
 type SQLInstanceReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
