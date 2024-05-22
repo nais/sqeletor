@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	//core_v1 "k8s.io/api/core/v1"
+	// core_v1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -55,12 +55,12 @@ var _ = Describe("SQLInstance Controller", func() {
 					Status: v1beta1.SQLInstanceStatus{
 						IpAddress: []v1beta1.InstanceIpAddressStatus{
 							{
-								IpAddress: ptr.To("10.10.10.10"),
-								Type:      ptr.To("PRIVATE"),
-							},
-							{
 								IpAddress: ptr.To("35.35.35.35"),
 								Type:      ptr.To("PRIMARY"),
+							},
+							{
+								IpAddress: ptr.To("10.10.10.10"),
+								Type:      ptr.To("PRIVATE"),
 							},
 						},
 					},
@@ -195,6 +195,81 @@ var _ = Describe("SQLInstance Controller", func() {
 
 					Expect(netpol.OwnerReferences).To(HaveLen(0))
 					Expect(netpol.Labels[managedByKey]).To(BeEmpty())
+				})
+			})
+
+			When("netpol already exists and is owned and managed", func() {
+				BeforeEach(func() {
+					existingNetPol := &v1.NetworkPolicy{
+						TypeMeta: meta_v1.TypeMeta{
+							APIVersion: "networking.k8s.io/v1",
+							Kind:       "NetworkPolicy",
+						},
+						ObjectMeta: meta_v1.ObjectMeta{
+							Name:              netpolIdentifier.Name,
+							Namespace:         netpolIdentifier.Namespace,
+							CreationTimestamp: meta_v1.Time{Time: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)},
+							OwnerReferences: []meta_v1.OwnerReference{
+								{
+									APIVersion: "sql.cnrm.cloud.google.com/v1beta1",
+									Kind:       "SQLInstance",
+									Name:       instanceIdentifier.Name,
+									UID:        "1234",
+								},
+							},
+							Labels: map[string]string{
+								managedByKey: sqeletorFqdnId,
+							},
+						},
+						Spec: v1.NetworkPolicySpec{
+							Egress: []v1.NetworkPolicyEgressRule{
+								{
+									To: []v1.NetworkPolicyPeer{
+										{
+											IPBlock: &v1.IPBlock{
+												CIDR: "127.0.0.2/32",
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+
+					k8sClient = clientBuilder.WithObjects(existingNetPol).Build()
+					controller = &SQLInstanceReconciler{Scheme: scheme.Scheme, Client: k8sClient}
+				})
+
+				It("should not update the network policy", func() {
+					req := ctrl.Request{NamespacedName: instanceIdentifier}
+					_, err := controller.Reconcile(ctx, req)
+					Expect(err).ToNot(HaveOccurred())
+
+					netpol := &v1.NetworkPolicy{}
+					err = k8sClient.Get(ctx, netpolIdentifier, netpol)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(netpol.Spec.Egress).To(Equal([]v1.NetworkPolicyEgressRule{
+						{
+							To: []v1.NetworkPolicyPeer{
+								{
+									IPBlock: &v1.IPBlock{
+										CIDR: "10.10.10.10/32",
+									},
+								},
+							},
+						}, {
+							To: []v1.NetworkPolicyPeer{
+								{
+									IPBlock: &v1.IPBlock{
+										CIDR: "35.35.35.35/32",
+									},
+								},
+							},
+						},
+					}))
+
+					Expect(netpol.Spec.PolicyTypes).To(Equal([]v1.PolicyType{v1.PolicyTypeEgress}))
 				})
 			})
 		})
