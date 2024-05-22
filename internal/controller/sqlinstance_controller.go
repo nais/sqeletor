@@ -123,7 +123,8 @@ func (r *SQLInstanceReconciler) reconcile(ctx context.Context, req ctrl.Request)
 		}
 
 		netpol.Spec.PolicyTypes = []netv1.PolicyType{netv1.PolicyTypeEgress}
-
+		netpol.Spec.Egress = []netv1.NetworkPolicyEgressRule{}
+		slices.Sort(ips)
 		for _, ip := range ips {
 			netpol.Spec.Egress = append(netpol.Spec.Egress, netv1.NetworkPolicyEgressRule{
 				To: []netv1.NetworkPolicyPeer{
