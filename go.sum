@@ -30,6 +30,8 @@ github.com/GoogleCloudPlatform/k8s-config-connector v1.118.1 h1:/zRuTOvzuZ5Tn8Pe
 github.com/GoogleCloudPlatform/k8s-config-connector v1.118.1/go.mod h1:+3/co3uY9kn68p+TFtO1pkoDeVMDC3jHFeuf8p5amFc=
 github.com/GoogleCloudPlatform/k8s-config-connector v1.118.2 h1:efkpSUr65yCjJ/XIcj+ZLpH+ABDwpBCXNBAWQdgsWyM=
 github.com/GoogleCloudPlatform/k8s-config-connector v1.118.2/go.mod h1:dYmEC+lgAOVbDnZ2qrnPFiaIqNSUKHRQksPvDR0WbbA=
+github.com/GoogleCloudPlatform/k8s-config-connector v1.119.0 h1:azdJ5sOpXXg1y06Zh1rkPi6qm0xsiwPgSK48tlR89Cw=
+github.com/GoogleCloudPlatform/k8s-config-connector v1.119.0/go.mod h1:7YttIMgv33j7n1u03eX1a6ujUo1xGQ88njtb3upNfj0=
 github.com/Masterminds/semver/v3 v3.2.1 h1:RN9w6+7QoMeJVGyfmbcgs28Br8cvmnucEXnY0rYXWg0=
 github.com/Masterminds/semver/v3 v3.2.1/go.mod h1:qvl/7zhW3nngYb5+80sSMF+FG2BjYrf8m9wsX0PNOMQ=
 github.com/OpenPeeDeeP/depguard/v2 v2.2.0 h1:vDfG60vDtIuf0MEOhmLlLLSzqaRM8EMcgJPdp74zmpA=
