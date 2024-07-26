@@ -15,7 +15,7 @@ require (
 	github.com/GoogleCloudPlatform/k8s-config-connector v1.120.1
 	github.com/golangci/golangci-lint v1.59.1
 	github.com/nais/liberator v0.0.0-20240412093323-c3d6aeb3b6d3
-	github.com/onsi/ginkgo/v2 v2.19.0
+	github.com/onsi/ginkgo/v2 v2.19.1
 	github.com/onsi/gomega v1.34.0
 	github.com/prometheus/client_golang v1.19.1
 	k8s.io/api v0.30.3
@@ -75,7 +75,7 @@ require (
 	github.com/fzipp/gocyclo v0.6.0 // indirect
 	github.com/ghostiam/protogetter v0.3.6 // indirect
 	github.com/go-critic/go-critic v0.11.4 // indirect
-	github.com/go-logr/logr v1.4.1 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
