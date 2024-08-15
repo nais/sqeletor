@@ -1,6 +1,6 @@
 dependencies:
   - allOf:
-      - cnrm
+      - nais-config-connector
 environmentKinds:
   - tenant
   - legacy
