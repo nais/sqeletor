@@ -103,7 +103,8 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 			UID:        sqlSslCert.GetUID(),
 		}
 
-		// if new resource, add owner reference and managed-by label
+		// if new resource, add owner reference and managed-by label.
+		// the secret is owned by the sql ssl cert resource.
 		if secret.CreationTimestamp.IsZero() {
 			secret.OwnerReferences = []meta_v1.OwnerReference{ownerReference}
 			secret.Labels[managedByKey] = sqeletorFqdnId

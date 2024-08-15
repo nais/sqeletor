@@ -103,6 +103,7 @@ func (r *SQLInstanceReconciler) reconcile(ctx context.Context, req ctrl.Request)
 		}
 
 		// if new resource, add owner reference and managed-by label
+		// the netpol is owned by the sql instance.
 		if netpol.CreationTimestamp.IsZero() {
 			netpol.OwnerReferences = []meta_v1.OwnerReference{ownerReference}
 			netpol.Labels[managedByKey] = sqeletorFqdnId

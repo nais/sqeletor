@@ -21,6 +21,7 @@ var (
 	errTemporaryFailure = errors.New("temporary failure")
 	errPermanentFailure = errors.New("permanent failure")
 	errNotManaged       = fmt.Errorf("not managed by controller: %w", errPermanentFailure)
+	errNoOwner          = fmt.Errorf("no owner: %w", errPermanentFailure)
 	errMultipleOwners   = fmt.Errorf("multiple owners: %w", errPermanentFailure)
 	errOwnedByOther     = fmt.Errorf("owned by other: %w", errPermanentFailure)
 )
@@ -40,6 +41,9 @@ func validateOwnership(ownerReference meta_v1.OwnerReference, meta meta_v1.Objec
 	}
 
 	ownerReferences := meta.GetOwnerReferences()
+	if len(ownerReferences) == 0 {
+		return fmt.Errorf("resource %s in namespace %s does not have any owner reference: %w", meta.GetName(), meta.GetNamespace(), errNoOwner)
+	}
 	if len(ownerReferences) > 1 {
 		return fmt.Errorf("resource %s in namespace %s has multiple owner references: %w", meta.GetName(), meta.GetNamespace(), errMultipleOwners)
 	}

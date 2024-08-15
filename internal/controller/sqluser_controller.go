@@ -157,6 +157,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		}
 
 		// if new resource, add owner reference and managed-by label
+		// the secret is owned by the sql user.
 		if secret.CreationTimestamp.IsZero() {
 			secret.OwnerReferences = []meta_v1.OwnerReference{ownerReference}
 			secret.Labels[managedByKey] = sqeletorFqdnId
