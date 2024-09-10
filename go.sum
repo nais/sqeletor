@@ -50,6 +50,8 @@ github.com/GoogleCloudPlatform/k8s-config-connector v1.120.1 h1:FHYXkxpip1SBBxLJ
 github.com/GoogleCloudPlatform/k8s-config-connector v1.120.1/go.mod h1:WWycucuPEgQJyvHeg+xG0WRBRkMnD2AUStSLLwOgArw=
 github.com/GoogleCloudPlatform/k8s-config-connector v1.121.0 h1:zAuyOKBn7lDOBTCHV3xsT12zviURd6St4f7gYbuEZp8=
 github.com/GoogleCloudPlatform/k8s-config-connector v1.121.0/go.mod h1:qRqmIgzUbS6nQx6+330ssweGsyJJpkd6lrUty2dHgw0=
+github.com/GoogleCloudPlatform/k8s-config-connector v1.122.0 h1:jfZizxEBG/8vBzmF2lKZ7E3zKbdvSUTN1nnLVj7tspI=
+github.com/GoogleCloudPlatform/k8s-config-connector v1.122.0/go.mod h1:efBoVzsYQ80GocA02dOOkggBUrn5M/wPNLv41/AhBJA=
 github.com/Masterminds/semver/v3 v3.2.1 h1:RN9w6+7QoMeJVGyfmbcgs28Br8cvmnucEXnY0rYXWg0=
 github.com/Masterminds/semver/v3 v3.2.1/go.mod h1:qvl/7zhW3nngYb5+80sSMF+FG2BjYrf8m9wsX0PNOMQ=
 github.com/Masterminds/semver/v3 v3.3.0 h1:B8LGeaivUe71a5qox1ICM/JLl0NqZSW5CHyL+hmvYS0=

@@ -12,7 +12,7 @@ replace github.com/hashicorp/terraform-provider-google-beta => ./invalid/terrafo
 replace github.com/GoogleCloudPlatform/k8s-config-connector/mockgcp => ./invalid/mockgcp
 
 require (
-	github.com/GoogleCloudPlatform/k8s-config-connector v1.121.0
+	github.com/GoogleCloudPlatform/k8s-config-connector v1.122.0
 	github.com/golangci/golangci-lint v1.61.0
 	github.com/nais/liberator v0.0.0-20240412093323-c3d6aeb3b6d3
 	github.com/onsi/ginkgo/v2 v2.20.2
