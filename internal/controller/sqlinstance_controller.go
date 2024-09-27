@@ -49,6 +49,9 @@ func (r *SQLInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			RequeueAfter: time.Minute,
 		}, nil
 	}
+	if err != nil {
+		logger.Error(err, "failed to reconcile SQLInstance")
+	}
 	return ctrl.Result{}, err
 }
 

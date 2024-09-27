@@ -54,6 +54,9 @@ func (r *SQLSSLCertReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			RequeueAfter: time.Minute,
 		}, nil
 	}
+	if err != nil {
+		logger.Error(err, "failed to reconcile SQLSSLCert")
+	}
 	return ctrl.Result{}, err
 }
 

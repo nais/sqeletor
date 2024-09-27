@@ -63,6 +63,9 @@ func (r *SQLUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			RequeueAfter: time.Minute,
 		}, nil
 	}
+	if err != nil {
+		logger.Error(err, "failed to reconcile SQLUser")
+	}
 	return ctrl.Result{}, err
 }
 
