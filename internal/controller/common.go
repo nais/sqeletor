@@ -9,12 +9,12 @@ import (
 
 const (
 	deploymentCorrelationIdKey = "nais.io/deploymentCorrelationID"
+	lastUpdatedAnnotation      = "sqeletor.nais.io/last-updated"
 	managedByKey               = "app.kubernetes.io/managed-by"
 	typeKey                    = "type"
 	appKey                     = "app"
 	teamKey                    = "team"
-
-	sqeletorFqdnId = "sqeletor.nais.io"
+	sqeletorFqdnId             = "sqeletor.nais.io"
 )
 
 var (

@@ -117,6 +117,7 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 		secret.Labels[teamKey] = sqlSslCert.Labels[teamKey]
 
 		secret.Annotations[deploymentCorrelationIdKey] = sqlSslCert.Annotations[deploymentCorrelationIdKey]
+		secret.Annotations[lastUpdatedAnnotation] = time.Now().Format(time.RFC3339)
 
 		derKey, err := pemToPkcs8Der(*sqlSslCert.Status.PrivateKey)
 		if err != nil {

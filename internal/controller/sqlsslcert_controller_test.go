@@ -114,6 +114,10 @@ KChGB9mxeIDV+wqRFCOK0IVOlBk4e+O2mk31LrXibw==
 					Expect(secret.OwnerReferences[0].Kind).To(Equal("SQLSSLCert"))
 					Expect(secret.OwnerReferences[0].APIVersion).To(Equal("sql.cnrm.cloud.google.com/v1beta1"))
 
+					lastUpdated, err := time.Parse(time.RFC3339, secret.Annotations[lastUpdatedAnnotation])
+					Expect(err).ToNot(HaveOccurred())
+					Expect(lastUpdated).To(BeTemporally("~", time.Now(), 5*time.Second))
+
 					Expect(secret.Labels[managedByKey]).To(Equal(sqeletorFqdnId))
 				})
 			})

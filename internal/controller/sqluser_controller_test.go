@@ -161,6 +161,10 @@ var _ = Describe("SQLUser Controller", func() {
 						Expect(secret.OwnerReferences[0].Kind).To(Equal("SQLUser"))
 						Expect(secret.OwnerReferences[0].APIVersion).To(Equal("sql.cnrm.cloud.google.com/v1beta1"))
 
+						lastUpdated, err := time.Parse(time.RFC3339, secret.Annotations[lastUpdatedAnnotation])
+						Expect(err).ToNot(HaveOccurred())
+						Expect(lastUpdated).To(BeTemporally("~", time.Now(), 5*time.Second))
+
 						Expect(secret.Labels[managedByKey]).To(Equal(sqeletorFqdnId))
 					})
 				})
@@ -310,7 +314,7 @@ var _ = Describe("SQLUser Controller", func() {
 				})
 			})
 			When("sql instance exists but is not configured for private ip", func() {
-				It("shuld return a permanent error", func() {
+				It("should return a permanent error", func() {
 					existingSqlInstance := &v1beta1.SQLInstance{
 						TypeMeta: meta_v1.TypeMeta{
 							APIVersion: "sql.cnrm.cloud.google.com/v1beta1",
@@ -339,7 +343,7 @@ var _ = Describe("SQLUser Controller", func() {
 			})
 
 			When("sql instance exists but does not have a private ip yet", func() {
-				It("shuld return a temporary error", func() {
+				It("should return a temporary error", func() {
 					existingSqlInstance := &v1beta1.SQLInstance{
 						TypeMeta: meta_v1.TypeMeta{
 							APIVersion: "sql.cnrm.cloud.google.com/v1beta1",

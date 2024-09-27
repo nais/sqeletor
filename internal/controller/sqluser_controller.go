@@ -170,6 +170,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		secret.Labels[teamKey] = sqlUser.Labels[teamKey]
 
 		secret.Annotations[deploymentCorrelationIdKey] = sqlUser.Annotations[deploymentCorrelationIdKey]
+		secret.Annotations[lastUpdatedAnnotation] = time.Now().Format(time.RFC3339)
 
 		password := string(secret.Data[prefixedPasswordKey])
 		if len(password) == 0 {
