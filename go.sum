@@ -22,6 +22,8 @@ github.com/GaijinEntertainment/go-exhaustruct/v3 v3.3.0 h1:/fTUt5vmbkAcMBt4YQiuC
 github.com/GaijinEntertainment/go-exhaustruct/v3 v3.3.0/go.mod h1:ONJg5sxcbsdQQ4pOW8TGdTidT2TMAUy/2Xhr8mrYaao=
 github.com/GoogleCloudPlatform/k8s-config-connector v1.123.1 h1:xQMxaFKfq5mLUqXJUOmpT7lGuBCB5n9Muwi08GNfaXc=
 github.com/GoogleCloudPlatform/k8s-config-connector v1.123.1/go.mod h1:aXJdalPRKo5uLYp3I8h2kkVm+pZ6sBNk/2aRrggN6PI=
+github.com/GoogleCloudPlatform/k8s-config-connector v1.124.0 h1:PD/uvvU8lqsj23FPYF5EvAV3O6enNeoB5HhE9Ix3AZI=
+github.com/GoogleCloudPlatform/k8s-config-connector v1.124.0/go.mod h1:Rgm2TLgSnXVCrgIfJIizeMda37DwPQ+XhQgSgJ3L9dY=
 github.com/Masterminds/semver/v3 v3.3.0 h1:B8LGeaivUe71a5qox1ICM/JLl0NqZSW5CHyL+hmvYS0=
 github.com/Masterminds/semver/v3 v3.3.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/OpenPeeDeeP/depguard/v2 v2.2.0 h1:vDfG60vDtIuf0MEOhmLlLLSzqaRM8EMcgJPdp74zmpA=
