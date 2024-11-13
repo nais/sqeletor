@@ -32,6 +32,8 @@ github.com/GoogleCloudPlatform/k8s-config-connector v1.123.1 h1:xQMxaFKfq5mLUqXJ
 github.com/GoogleCloudPlatform/k8s-config-connector v1.123.1/go.mod h1:aXJdalPRKo5uLYp3I8h2kkVm+pZ6sBNk/2aRrggN6PI=
 github.com/GoogleCloudPlatform/k8s-config-connector v1.124.0 h1:PD/uvvU8lqsj23FPYF5EvAV3O6enNeoB5HhE9Ix3AZI=
 github.com/GoogleCloudPlatform/k8s-config-connector v1.124.0/go.mod h1:Rgm2TLgSnXVCrgIfJIizeMda37DwPQ+XhQgSgJ3L9dY=
+github.com/GoogleCloudPlatform/k8s-config-connector v1.125.0 h1:oGWpJITjVgJ+ocATyf6BedTwK5tJ5KuOe+yhOyQ+oFU=
+github.com/GoogleCloudPlatform/k8s-config-connector v1.125.0/go.mod h1:RX/TZs88Bbp3verrymNfRUnrNUYx9goLY5dMh0yqLjc=
 github.com/Masterminds/semver/v3 v3.3.0 h1:B8LGeaivUe71a5qox1ICM/JLl0NqZSW5CHyL+hmvYS0=
 github.com/Masterminds/semver/v3 v3.3.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/OpenPeeDeeP/depguard/v2 v2.2.0 h1:vDfG60vDtIuf0MEOhmLlLLSzqaRM8EMcgJPdp74zmpA=
@@ -670,6 +672,8 @@ golang.org/x/text v0.20.0 h1:gK/Kv2otX8gz+wn7Rmb3vT96ZwuoxnQlY+HlJVj7Qug=
 golang.org/x/text v0.20.0/go.mod h1:D4IsuqiFMhST5bX19pQ9ikHC2GsaKyk/oF+pn3ducp4=
 golang.org/x/time v0.6.0 h1:eTDhh4ZXt5Qf0augr54TN6suAUudPcawVZeIAPU7D4U=
 golang.org/x/time v0.6.0/go.mod h1:3BpzKBy/shNhVucY/MWOyx10tF3SFh9QdLuxbVysPQM=
+golang.org/x/time v0.7.0 h1:ntUhktv3OPE6TgYxXWv9vKvUSJyIFJlyohwbkEwPrKQ=
+golang.org/x/time v0.7.0/go.mod h1:3BpzKBy/shNhVucY/MWOyx10tF3SFh9QdLuxbVysPQM=
 golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20190321232350-e250d351ecad/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
 golang.org/x/tools v0.0.0-20190910044552-dd2b5c81c578/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
