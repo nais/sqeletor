@@ -12,7 +12,7 @@ replace github.com/hashicorp/terraform-provider-google-beta => ./invalid/terrafo
 replace github.com/GoogleCloudPlatform/k8s-config-connector/mockgcp => ./invalid/mockgcp
 
 require (
-	github.com/GoogleCloudPlatform/k8s-config-connector v1.125.0
+	github.com/GoogleCloudPlatform/k8s-config-connector v1.127.0
 	github.com/golangci/golangci-lint v1.62.2
 	github.com/nais/liberator v0.0.0-20240412093323-c3d6aeb3b6d3
 	github.com/onsi/ginkgo/v2 v2.22.1
@@ -224,15 +224,15 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20241108190413-2d47ceb2692f // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.32.0 // indirect
-	golang.org/x/oauth2 v0.23.0 // indirect
+	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/term v0.27.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/time v0.7.0 // indirect
+	golang.org/x/time v0.8.0 // indirect
 	golang.org/x/tools v0.28.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
-	google.golang.org/protobuf v1.35.1 // indirect
+	google.golang.org/protobuf v1.35.2 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
