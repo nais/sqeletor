@@ -1,8 +1,6 @@
 module github.com/nais/sqeletor
 
-go 1.22.1
-
-toolchain go1.22.6
+go 1.23.0
 
 // These have invalid versions, but aren't actually in use.
 // They are pulled in by github.com/GoogleCloudPlatform/k8s-config-connector
@@ -231,7 +229,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20241108190413-2d47ceb2692f // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/oauth2 v0.25.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
