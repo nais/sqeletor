@@ -1,8 +1,8 @@
 module github.com/nais/sqeletor
 
-go 1.22.1
+go 1.24
 
-toolchain go1.22.6
+toolchain go1.24.7
 
 // These have invalid versions, but aren't actually in use.
 // They are pulled in by github.com/GoogleCloudPlatform/k8s-config-connector
@@ -100,7 +100,6 @@ require (
 	github.com/golangci/go-printf-func-name v0.1.0 // indirect
 	github.com/golangci/gofmt v0.0.0-20241223200906-057b0627d9b9 // indirect
 	github.com/golangci/misspell v0.6.0 // indirect
-	github.com/golangci/modinfo v0.3.4 // indirect
 	github.com/golangci/plugin-module-register v0.1.1 // indirect
 	github.com/golangci/revgrep v0.5.3 // indirect
 	github.com/golangci/unconvert v0.0.0-20240309020433-c5143eacb3ed // indirect
@@ -123,7 +122,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jgautheron/goconst v1.7.1 // indirect
 	github.com/jingyugao/rowserrcheck v1.1.1 // indirect
-	github.com/jirfag/go-printf-func-name v0.0.0-20200119135958-7558a9eaa5af // indirect
 	github.com/jjti/go-spancheck v0.6.4 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -141,7 +139,6 @@ require (
 	github.com/ldez/tagliatelle v0.7.1 // indirect
 	github.com/ldez/usetesting v0.4.2 // indirect
 	github.com/leonklingele/grouper v1.1.2 // indirect
-	github.com/lufeee/execinquery v1.2.1 // indirect
 	github.com/macabu/inamedparam v0.1.3 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -184,7 +181,6 @@ require (
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sanposhiho/wastedassign/v2 v2.1.0 // indirect
-	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.1 // indirect
 	github.com/sashamelentyev/interfacebloat v1.1.0 // indirect
 	github.com/sashamelentyev/usestdlibvars v1.28.0 // indirect
