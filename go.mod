@@ -15,7 +15,7 @@ require (
 	github.com/GoogleCloudPlatform/k8s-config-connector v1.129.2
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/nais/liberator v0.0.0-20240412093323-c3d6aeb3b6d3
-	github.com/onsi/ginkgo/v2 v2.25.1
+	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
 	github.com/prometheus/client_golang v1.23.2
 	k8s.io/api v0.31.3
