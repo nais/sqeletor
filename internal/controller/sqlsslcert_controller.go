@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/sql/v1beta1"
@@ -22,10 +24,13 @@ import (
 )
 
 const (
-	certKey      = "cert.pem"
-	pk1PemKeyKey = "key.pem"
-	pk8DerKeyKey = "key.pk8"
-	rootCertKey  = "root-cert.pem"
+	certKey         = "cert.pem"
+	oldPk1PemKeyKey = "key.pem"
+	pk1PemKeyKey    = "key.pk1.pem"
+	oldPk8DerKeyKey = "key.pk8"
+	pk8PemKeyKey    = "key.pk8.pem"
+	pk8DerKeyKey    = "key.pk8.der"
+	rootCertKey     = "root-cert.pem"
 )
 
 var requeuesMetric = prometheus.NewCounter(prometheus.CounterOpts{
@@ -122,17 +127,26 @@ func (r *SQLSSLCertReconciler) reconcileSQLSSLCert(ctx context.Context, req ctrl
 		secret.Annotations[deploymentCorrelationIdKey] = sqlSslCert.Annotations[deploymentCorrelationIdKey]
 		secret.Annotations[lastUpdatedAnnotation] = time.Now().Format(time.RFC3339)
 
-		derKey, err := pemToPkcs8Der(*sqlSslCert.Status.PrivateKey)
+		pkcs8Der, err := pemToPkcs8Der(*sqlSslCert.Status.PrivateKey)
 		if err != nil {
 			logger.Info("Failed to convert cert to DER", "error", err)
 		}
+
+		pkcs8Pem, err := encodePrivateKeyToPEM(pkcs8Der)
+		if err != nil {
+			logger.Info("Failed to convert cert to PKCS8 PEM", "error", err)
+		}
+
 		secret.Data = map[string][]byte{
-			pk8DerKeyKey: derKey,
+			oldPk8DerKeyKey: pkcs8Der, // TODO: Deprecated, remove when no longer used
+			pk8DerKeyKey:    pkcs8Der,
 		}
 		secret.StringData = map[string]string{
-			certKey:      *sqlSslCert.Status.Cert,
-			pk1PemKeyKey: *sqlSslCert.Status.PrivateKey,
-			rootCertKey:  *sqlSslCert.Status.ServerCaCert,
+			certKey:         *sqlSslCert.Status.Cert,
+			oldPk1PemKeyKey: strings.TrimSpace(*sqlSslCert.Status.PrivateKey), // TODO: Deprecated, remove when no longer used
+			pk1PemKeyKey:    strings.TrimSpace(*sqlSslCert.Status.PrivateKey),
+			pk8PemKeyKey:    strings.TrimSpace(string(pkcs8Pem)),
+			rootCertKey:     *sqlSslCert.Status.ServerCaCert,
 		}
 
 		return nil
@@ -184,4 +198,17 @@ func pemToPkcs8Der(pem string) ([]byte, error) {
 	}
 
 	return pkcs8WrappedRsaKey, nil
+}
+
+func encodePrivateKeyToPEM(der []byte) ([]byte, error) {
+	block := &pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: der,
+	}
+
+	var buf bytes.Buffer
+	if err := pem.Encode(&buf, block); err != nil {
+		return nil, fmt.Errorf("failed to encode PEM block: %w", err)
+	}
+	return buf.Bytes(), nil
 }

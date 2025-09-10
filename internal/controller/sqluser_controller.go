@@ -184,8 +184,11 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 		rootCertPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, rootCertKey)
 		certPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, certKey)
+		oldPk1PemKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, oldPk1PemKeyKey)
 		pk1PemKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, pk1PemKeyKey)
+		oldPk8DerKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, oldPk8DerKeyKey)
 		pk8DerKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, pk8DerKeyKey)
+		pk8PemKeyPath := filepath.Join(nais_io_v1alpha1.DefaultSqeletorMountPath, pk8PemKeyKey)
 
 		urlData := UrlData{
 			Host:         net.JoinHostPort(instanceIP, postgresPort),
@@ -193,27 +196,30 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 			Password:     password,
 			Database:     dbName,
 			CertPath:     certPath,
-			KeyPath:      pk1PemKeyPath,
+			KeyPath:      oldPk1PemKeyPath, // TODO: Switch to new path when all certificate secrets are updated
 			RootCertPath: rootCertPath,
 		}
 		googleSQLPostgresURL := makePostgresUrl(urlData)
 
-		urlData.KeyPath = pk8DerKeyPath
+		urlData.KeyPath = oldPk8DerKeyPath // TODO: Switch to new path when all certificate secrets are updated
 		googleSQLJDBCURL := makeJDBCUrl(urlData)
 
 		secret.StringData = map[string]string{
-			prefixedPasswordKey:           password,
-			envVarPrefix + "_HOST":        instanceIP,
-			envVarPrefix + "_PORT":        postgresPort,
-			envVarPrefix + "_DATABASE":    dbName,
-			envVarPrefix + "_USERNAME":    *sqlUser.Spec.ResourceID,
-			envVarPrefix + "_URL":         googleSQLPostgresURL.String(),
-			envVarPrefix + "_JDBC_URL":    googleSQLJDBCURL.String(),
-			envVarPrefix + "_SSLROOTCERT": rootCertPath,
-			envVarPrefix + "_SSLCERT":     certPath,
-			envVarPrefix + "_SSLKEY":      pk1PemKeyPath,
-			envVarPrefix + "_SSLKEY_PK8":  pk8DerKeyPath,
-			envVarPrefix + "_SSLMODE":     "verify-ca",
+			prefixedPasswordKey:              password,
+			envVarPrefix + "_HOST":           instanceIP,
+			envVarPrefix + "_PORT":           postgresPort,
+			envVarPrefix + "_DATABASE":       dbName,
+			envVarPrefix + "_USERNAME":       *sqlUser.Spec.ResourceID,
+			envVarPrefix + "_URL":            googleSQLPostgresURL.String(),
+			envVarPrefix + "_JDBC_URL":       googleSQLJDBCURL.String(),
+			envVarPrefix + "_SSLROOTCERT":    rootCertPath,
+			envVarPrefix + "_SSLCERT":        certPath,
+			envVarPrefix + "_SSLKEY":         oldPk1PemKeyPath, // TODO: Deprecated, remove when no longer used
+			envVarPrefix + "_SSLKEY_PK1_PEM": pk1PemKeyPath,
+			envVarPrefix + "_SSLKEY_PK8":     oldPk8DerKeyPath, // TODO: Deprecated, remove when no longer used
+			envVarPrefix + "_SSLKEY_PK8_DER": pk8DerKeyPath,
+			envVarPrefix + "_SSLKEY_PK8_PEM": pk8PemKeyPath,
+			envVarPrefix + "_SSLMODE":        "verify-ca",
 		}
 
 		return nil
