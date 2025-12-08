@@ -16,7 +16,7 @@ require (
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/nais/liberator v0.0.0-20240412093323-c3d6aeb3b6d3
 	github.com/onsi/ginkgo/v2 v2.27.2
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/gomega v1.38.3
 	github.com/prometheus/client_golang v1.23.2
 	k8s.io/api v0.31.3
 	k8s.io/apimachinery v0.31.3
