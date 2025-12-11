@@ -257,6 +257,214 @@ var _ = Describe("SQLUser Controller", func() {
 					})
 				})
 
+				When("a secret already exists with correct data (no changes needed)", func() {
+					var initialLastUpdated string
+
+					BeforeEach(func() {
+						initialLastUpdated = time.Now().Add(-5 * time.Minute).Format(time.RFC3339)
+						existingSecret := &core_v1.Secret{
+							ObjectMeta: meta_v1.ObjectMeta{
+								Name:      secretName,
+								Namespace: namespace,
+								CreationTimestamp: meta_v1.Time{
+									Time: time.Now().Add(-10 * time.Minute),
+								},
+								Labels: map[string]string{
+									managedByKey: sqeletorFqdnId,
+									typeKey:      sqeletorFqdnId,
+									appKey:       "",
+									teamKey:      "",
+								},
+								Annotations: map[string]string{
+									deploymentCorrelationIdKey: "",
+									lastUpdatedAnnotation:      initialLastUpdated,
+								},
+								OwnerReferences: []meta_v1.OwnerReference{
+									{
+										APIVersion: "sql.cnrm.cloud.google.com/v1beta1",
+										Kind:       "SQLUser",
+										Name:       userName,
+									},
+								},
+							},
+							Data: map[string][]byte{
+								envVarPrefix + "_PASSWORD":    []byte("testpassword"),
+								envVarPrefix + "_HOST":        []byte(instanceIP),
+								envVarPrefix + "_PORT":        []byte("5432"),
+								envVarPrefix + "_DATABASE":    []byte(dbName),
+								envVarPrefix + "_USERNAME":    []byte(resourceId),
+								envVarPrefix + "_SSLROOTCERT": []byte("/var/run/secrets/nais.io/sqlcertificate/root-cert.pem"),
+								envVarPrefix + "_SSLCERT":     []byte("/var/run/secrets/nais.io/sqlcertificate/cert.pem"),
+								envVarPrefix + "_SSLKEY":      []byte("/var/run/secrets/nais.io/sqlcertificate/key.pem"),
+								envVarPrefix + "_SSLKEY_PK8":  []byte("/var/run/secrets/nais.io/sqlcertificate/key.pk8"),
+								envVarPrefix + "_SSLMODE":     []byte("verify-ca"),
+								envVarPrefix + "_URL":         []byte("postgresql://test-resource-id:testpassword@10.10.10.10:5432/test-db?sslcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fcert.pem&sslkey=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fkey.pem&sslmode=verify-ca&sslrootcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Froot-cert.pem"),
+								envVarPrefix + "_JDBC_URL":    []byte("jdbc:postgresql://10.10.10.10:5432/test-db?password=testpassword&sslcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fcert.pem&sslkey=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fkey.pk8&sslmode=verify-ca&sslrootcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Froot-cert.pem&user=test-resource-id"),
+							},
+						}
+						k8sClient = clientBuilder.WithObjects(existingSecret).Build()
+						controller = &SQLUserReconciler{Scheme: scheme.Scheme, Client: k8sClient}
+					})
+
+					It("should not update the secret", func() {
+						req := ctrl.Request{NamespacedName: types.NamespacedName{Name: userName, Namespace: namespace}}
+						_, err := controller.Reconcile(ctx, req)
+						Expect(err).ToNot(HaveOccurred())
+
+						secret := &core_v1.Secret{}
+						err = k8sClient.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, secret)
+						Expect(err).ToNot(HaveOccurred())
+
+						// The lastUpdatedAnnotation should NOT have changed
+						Expect(secret.Annotations[lastUpdatedAnnotation]).To(Equal(initialLastUpdated))
+					})
+
+					It("should preserve all existing data", func() {
+						req := ctrl.Request{NamespacedName: types.NamespacedName{Name: userName, Namespace: namespace}}
+						_, err := controller.Reconcile(ctx, req)
+						Expect(err).ToNot(HaveOccurred())
+
+						secret := &core_v1.Secret{}
+						err = k8sClient.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, secret)
+						Expect(err).ToNot(HaveOccurred())
+
+						// Data should remain unchanged
+						Expect(string(secret.Data[envVarPrefix+"_PASSWORD"])).To(Equal("testpassword"))
+						Expect(string(secret.Data[envVarPrefix+"_HOST"])).To(Equal(instanceIP))
+						Expect(string(secret.Data[envVarPrefix+"_DATABASE"])).To(Equal(dbName))
+					})
+				})
+
+				When("a secret already exists but with different label values", func() {
+					var initialLastUpdated string
+
+					BeforeEach(func() {
+						initialLastUpdated = time.Now().Add(-5 * time.Minute).Format(time.RFC3339)
+						existingUser := &v1beta1.SQLUser{
+							TypeMeta: meta_v1.TypeMeta{
+								APIVersion: "sql.cnrm.cloud.google.com/v1beta1",
+								Kind:       "SQLUser",
+							},
+							ObjectMeta: meta_v1.ObjectMeta{
+								Name:      userName,
+								Namespace: namespace,
+								Annotations: map[string]string{
+									"sqeletor.nais.io/env-var-prefix": envVarPrefix,
+									"sqeletor.nais.io/database-name":  dbName,
+								},
+								Labels: map[string]string{
+									appKey:  "my-app",
+									teamKey: "my-team",
+								},
+							},
+							Spec: v1beta1.SQLUserSpec{
+								Password: &v1beta1.UserPassword{
+									ValueFrom: &v1beta1.UserValueFrom{
+										SecretKeyRef: &v1alpha1.SecretKeyRef{
+											Name: secretName,
+											Key:  secretKey,
+										},
+									},
+								},
+								InstanceRef: v1alpha1.ResourceRef{
+									Name:      instanceName,
+									Namespace: namespace,
+								},
+								ResourceID: ptr.To(resourceId),
+							},
+						}
+
+						existingSqlInstance := &v1beta1.SQLInstance{
+							TypeMeta: meta_v1.TypeMeta{
+								APIVersion: "sql.cnrm.cloud.google.com/v1beta1",
+								Kind:       "SQLInstance",
+							},
+							ObjectMeta: meta_v1.ObjectMeta{
+								Name:      instanceName,
+								Namespace: namespace,
+							},
+							Spec: v1beta1.SQLInstanceSpec{
+								Settings: v1beta1.InstanceSettings{
+									IpConfiguration: &v1beta1.InstanceIpConfiguration{
+										PrivateNetworkRef: &v1alpha1.ResourceRef{
+											Name: "test-network",
+										},
+									},
+								},
+							},
+							Status: v1beta1.SQLInstanceStatus{
+								PrivateIpAddress: ptr.To(instanceIP),
+							},
+						}
+
+						existingSecret := &core_v1.Secret{
+							ObjectMeta: meta_v1.ObjectMeta{
+								Name:      secretName,
+								Namespace: namespace,
+								CreationTimestamp: meta_v1.Time{
+									Time: time.Now().Add(-10 * time.Minute),
+								},
+								Labels: map[string]string{
+									managedByKey: sqeletorFqdnId,
+									typeKey:      sqeletorFqdnId,
+									appKey:       "old-app",
+									teamKey:      "old-team",
+								},
+								Annotations: map[string]string{
+									deploymentCorrelationIdKey: "",
+									lastUpdatedAnnotation:      initialLastUpdated,
+								},
+								OwnerReferences: []meta_v1.OwnerReference{
+									{
+										APIVersion: "sql.cnrm.cloud.google.com/v1beta1",
+										Kind:       "SQLUser",
+										Name:       userName,
+									},
+								},
+							},
+							Data: map[string][]byte{
+								envVarPrefix + "_PASSWORD":    []byte("testpassword"),
+								envVarPrefix + "_HOST":        []byte(instanceIP),
+								envVarPrefix + "_PORT":        []byte("5432"),
+								envVarPrefix + "_DATABASE":    []byte(dbName),
+								envVarPrefix + "_USERNAME":    []byte(resourceId),
+								envVarPrefix + "_SSLROOTCERT": []byte("/var/run/secrets/nais.io/sqlcertificate/root-cert.pem"),
+								envVarPrefix + "_SSLCERT":     []byte("/var/run/secrets/nais.io/sqlcertificate/cert.pem"),
+								envVarPrefix + "_SSLKEY":      []byte("/var/run/secrets/nais.io/sqlcertificate/key.pem"),
+								envVarPrefix + "_SSLKEY_PK8":  []byte("/var/run/secrets/nais.io/sqlcertificate/key.pk8"),
+								envVarPrefix + "_SSLMODE":     []byte("verify-ca"),
+								envVarPrefix + "_URL":         []byte("postgresql://test-resource-id:testpassword@10.10.10.10:5432/test-db?sslcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fcert.pem&sslkey=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fkey.pem&sslmode=verify-ca&sslrootcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Froot-cert.pem"),
+								envVarPrefix + "_JDBC_URL":    []byte("jdbc:postgresql://10.10.10.10:5432/test-db?password=testpassword&sslcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fcert.pem&sslkey=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Fkey.pk8&sslmode=verify-ca&sslrootcert=%2Fvar%2Frun%2Fsecrets%2Fnais.io%2Fsqlcertificate%2Froot-cert.pem&user=test-resource-id"),
+							},
+						}
+						k8sClient = fake.NewClientBuilder().
+							WithScheme(scheme.Scheme).
+							WithObjects(existingUser, existingSqlInstance, existingSecret).
+							Build()
+						controller = &SQLUserReconciler{Scheme: scheme.Scheme, Client: k8sClient}
+					})
+
+					It("should update the labels and lastUpdatedAnnotation", func() {
+						req := ctrl.Request{NamespacedName: types.NamespacedName{Name: userName, Namespace: namespace}}
+						_, err := controller.Reconcile(ctx, req)
+						Expect(err).ToNot(HaveOccurred())
+
+						secret := &core_v1.Secret{}
+						err = k8sClient.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, secret)
+						Expect(err).ToNot(HaveOccurred())
+
+						// Labels should be updated
+						Expect(secret.Labels[appKey]).To(Equal("my-app"))
+						Expect(secret.Labels[teamKey]).To(Equal("my-team"))
+
+						// The lastUpdatedAnnotation SHOULD have changed
+						Expect(secret.Annotations[lastUpdatedAnnotation]).NotTo(Equal(initialLastUpdated))
+						lastUpdated, err := time.Parse(time.RFC3339, secret.Annotations[lastUpdatedAnnotation])
+						Expect(err).ToNot(HaveOccurred())
+						Expect(lastUpdated).To(BeTemporally("~", time.Now(), 5*time.Second))
+					})
+				})
+
 				When("a secret already exists that is owned and managed by other user", func() {
 					BeforeEach(func() {
 						existingSecret := &core_v1.Secret{
