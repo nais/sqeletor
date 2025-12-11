@@ -161,19 +161,13 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 
 		// if new resource, add owner reference and managed-by label
 		// the secret is owned by the sql user.
-		if secret.CreationTimestamp.IsZero() {
+		isNewResource := secret.CreationTimestamp.IsZero()
+		if isNewResource {
 			secret.OwnerReferences = []meta_v1.OwnerReference{ownerReference}
 			secret.Labels[managedByKey] = sqeletorFqdnId
 		} else if err := validateOwnership(ownerReference, secret); err != nil {
 			return err
 		}
-
-		secret.Labels[typeKey] = sqeletorFqdnId
-		secret.Labels[appKey] = sqlUser.Labels[appKey]
-		secret.Labels[teamKey] = sqlUser.Labels[teamKey]
-
-		secret.Annotations[deploymentCorrelationIdKey] = sqlUser.Annotations[deploymentCorrelationIdKey]
-		secret.Annotations[lastUpdatedAnnotation] = time.Now().Format(time.RFC3339)
 
 		password := string(secret.Data[prefixedPasswordKey])
 		if len(password) == 0 {
@@ -201,7 +195,7 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 		urlData.KeyPath = pk8DerKeyPath
 		googleSQLJDBCURL := makeJDBCUrl(urlData)
 
-		secret.StringData = map[string]string{
+		desiredData := map[string]string{
 			prefixedPasswordKey:           password,
 			envVarPrefix + "_HOST":        instanceIP,
 			envVarPrefix + "_PORT":        postgresPort,
@@ -215,6 +209,37 @@ func (r *SQLUserReconciler) reconcileSQLUser(ctx context.Context, req ctrl.Reque
 			envVarPrefix + "_SSLKEY_PK8":  pk8DerKeyPath,
 			envVarPrefix + "_SSLMODE":     "verify-ca",
 		}
+
+		desiredLabels := map[string]string{
+			typeKey: sqeletorFqdnId,
+			appKey:  sqlUser.Labels[appKey],
+			teamKey: sqlUser.Labels[teamKey],
+		}
+
+		desiredAnnotations := map[string]string{
+			deploymentCorrelationIdKey: sqlUser.Annotations[deploymentCorrelationIdKey],
+		}
+
+		// Check if there are any actual changes
+		hasChanges := isNewResource ||
+			secretDataChanged(secret.Data, desiredData) ||
+			labelsChanged(secret.Labels, desiredLabels) ||
+			annotationsChanged(secret.Annotations, desiredAnnotations)
+
+		if !hasChanges {
+			// No changes needed, skip update
+			return nil
+		}
+
+		// Apply changes
+		secret.Labels[typeKey] = sqeletorFqdnId
+		secret.Labels[appKey] = sqlUser.Labels[appKey]
+		secret.Labels[teamKey] = sqlUser.Labels[teamKey]
+
+		secret.Annotations[deploymentCorrelationIdKey] = sqlUser.Annotations[deploymentCorrelationIdKey]
+		secret.Annotations[lastUpdatedAnnotation] = time.Now().Format(time.RFC3339)
+
+		secret.StringData = desiredData
 
 		return nil
 	})
@@ -273,4 +298,38 @@ func generatePassword() string {
 		panic(err)
 	}
 	return base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(buf)
+}
+
+// check if secret data has changed
+func secretDataChanged(existingData map[string][]byte, desiredData map[string]string) bool {
+	if len(existingData) != len(desiredData) {
+		return true
+	}
+	for key, desiredValue := range desiredData {
+		existingValue, exists := existingData[key]
+		if !exists || string(existingValue) != desiredValue {
+			return true
+		}
+	}
+	return false
+}
+
+// check if labels have changed
+func labelsChanged(existingLabels, desiredLabels map[string]string) bool {
+	for key, desiredValue := range desiredLabels {
+		if existingLabels[key] != desiredValue {
+			return true
+		}
+	}
+	return false
+}
+
+// check if annotations have changed
+func annotationsChanged(existingAnnotations, desiredAnnotations map[string]string) bool {
+	for key, desiredValue := range desiredAnnotations {
+		if existingAnnotations[key] != desiredValue {
+			return true
+		}
+	}
+	return false
 }
