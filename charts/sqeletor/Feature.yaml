@@ -3,7 +3,6 @@ dependencies:
       - nais-config-connector
 environmentKinds:
   - tenant
-  - legacy
 values:
   image.tag:
     displayName: Image tag
